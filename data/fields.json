@@ -1,8 +1,7 @@
 {
   "pages": [
     {
-      "id": "date_proiect",
-      "title": "Date proiect",
+      "id": "project",
       "fields": [
         "beneficiar",
         "adresa_lucrare",
@@ -22,8 +21,7 @@
       ]
     },
     {
-      "id": "date_tehnice",
-      "title": "Date tehnice",
+      "id": "technical",
       "fields": [
         "debit_instalat",
         "presiune_regim",
@@ -39,46 +37,27 @@
       ]
     },
     {
-      "id": "documentatie",
-      "title": "Documentație",
-      "fields": [
-        "numar_document",
-        "data_document",
-        "revizie",
-        "titlu_document",
-        "observatii",
-        "stampila_proiectant",
-        "stampila_vgd",
-        "stampila_rte"
-      ]
-    },
-    {
       "id": "vgd",
-      "title": "VGD",
       "fields": [
         "verificator_vgd",
         "atestat_vgd",
         "data_verificare_vgd",
         "status_vgd",
-        "observatii_vgd",
-        "stampila_vgd"
+        "observatii_vgd"
       ]
     },
     {
       "id": "rte",
-      "title": "RTE",
       "fields": [
         "responsabil_rte",
         "autorizatie_rte",
         "data_verificare_rte",
         "status_rte",
-        "observatii_rte",
-        "stampila_rte"
+        "observatii_rte"
       ]
     },
     {
-      "id": "emailuri",
-      "title": "Email-uri",
+      "id": "email",
       "fields": [
         "email_destinatar",
         "email_cc",
@@ -89,8 +68,7 @@
       ]
     },
     {
-      "id": "calcul",
-      "title": "Calcul",
+      "id": "calculation",
       "fields": [
         "calcul_debit",
         "calcul_presiune",

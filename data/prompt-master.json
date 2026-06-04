@@ -1,23 +1,23 @@
 {
-  "product": "Energy Project Design Services",
-  "version": "Safe Functions Patch",
+  "product": "Energy Project Services",
+  "version": "PowerShell Big Update",
   "activeProfile": {
     "industry": "Gaze naturale",
     "workType": "Branșamente gaze naturale"
   },
   "priorityModules": [
     "Documentație",
-    "Ștampile",
     "Email-uri",
-    "Verificări VGD",
-    "Verificări RTE",
-    "AI Developer chat",
-    "Assistant User"
+    "Ștampile",
+    "VGD",
+    "RTE",
+    "AI Developer",
+    "Asistent utilizator"
   ],
-  "permanentRules": [
-    "Nu șterge funcții existente.",
-    "UI în limba română.",
-    "AI Developer folosește backend/OpenAI și GitHub self-update.",
-    "Export blocat pentru Free/Trial/Basic/Expired și permis pentru Developer."
+  "rules": [
+    "Nu șterge funcții existente",
+    "UI română",
+    "Export blocat Free/Trial/Basic/Expired",
+    "Developer export permis"
   ]
 }
