@@ -49,5 +49,6 @@
     "Diagnostic",
     "Actualizări",
     "Construire / Lansare"
-  ]
+  ],
+  "newPrompt": "Acesta este un prompt nou generat pentru utilizarea în aplicație."
 }
