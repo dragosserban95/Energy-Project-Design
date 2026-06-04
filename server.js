@@ -449,16 +449,16 @@ function localAnalyze(text) {
   const checks = [
     ["login", "Login/Register/Trial/Forgot/Google-ready", "auth"],
     ["google", "Integrare Google-ready", "google"],
-    ["platĂ„Â", "PlĂ„ÂÄŚâ€şi configurabile", "payments"],
-    ["plati", "PlĂ„ÂÄŚâ€şi configurabile", "payments"],
+    ["platÄ‚â€žĂ‚Â", "PlÄ‚â€žĂ‚ÂĂ„ĹšĂ˘â‚¬Ĺźi configurabile", "payments"],
+    ["plati", "PlÄ‚â€žĂ‚ÂĂ„ĹšĂ˘â‚¬Ĺźi configurabile", "payments"],
     ["openai", "AI Developer prin OpenAI backend", "ai_developer"],
     ["ai developer", "AI Developer prin OpenAI backend", "ai_developer"],
     ["assistant user", "Asistent utilizator local", "assistant_user"],
-    ["prompt", "Upload prompturi ÄŚâ„˘i analizĂ„Â", "prompt_upload"],
+    ["prompt", "Upload prompturi Ă„ĹšĂ˘â€žËi analizÄ‚â€žĂ‚Â", "prompt_upload"],
     ["update", "Run Update inteligent", "update_center"],
     ["gaze naturale", "Profil gaze naturale", "gas_profile"],
-    ["branÄŚâ„˘amente", "Profil branÄŚâ„˘amente", "gas_branch"],
-    ["osd", "ÄŚÂabloane OSD", "osd_templates"],
+    ["branĂ„ĹšĂ˘â€žËamente", "Profil branĂ„ĹšĂ˘â€žËamente", "gas_branch"],
+    ["osd", "Ă„ĹšĂ‚Âabloane OSD", "osd_templates"],
     ["placeholder", "Template engine placeholders", "template_engine"],
     ["vgd", "VGD", "vgd"],
     ["rte", "RTE", "rte"],
@@ -472,10 +472,10 @@ function localAnalyze(text) {
     mode: "local",
     createdAt: now(),
     promptSize: String(text || "").length,
-    summary: `AnalizĂ„Â localĂ„Â: ${tasks.length} cerinÄŚâ€şe detectate.`,
+    summary: `AnalizÄ‚â€žĂ‚Â localÄ‚â€žĂ‚Â: ${tasks.length} cerinĂ„ĹšĂ˘â‚¬Ĺźe detectate.`,
     tasks,
     files: [],
-    manualSteps: ["SeteazĂ„Â OPENAI_API_KEY pentru analizĂ„Â AI realĂ„Â.", "SeteazĂ„Â GITHUB_TOKEN pentru auto-aplicare Ä‚Â®n repository."]
+    manualSteps: ["SeteazÄ‚â€žĂ‚Â OPENAI_API_KEY pentru analizÄ‚â€žĂ‚Â AI realÄ‚â€žĂ‚Â.", "SeteazÄ‚â€žĂ‚Â GITHUB_TOKEN pentru auto-aplicare Ă„â€šĂ‚Â®n repository."]
   };
 }
 
@@ -483,7 +483,7 @@ function safeJson(text) {
   const raw = String(text || "").trim();
   try { return JSON.parse(raw); } catch {}
   const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error("RĂ„Âspunsul AI nu conÄŚâ€şine JSON valid.");
+  if (!match) throw new Error("RÄ‚â€žĂ‚Âspunsul AI nu conĂ„ĹšĂ˘â‚¬Ĺźine JSON valid.");
   return JSON.parse(match[0]);
 }
 
@@ -506,13 +506,13 @@ async function aiProposal(combinedPrompt) {
   const model = process.env.EPD_AI_MODEL || "gpt-4.1-mini";
 
   const system = `
-EÄŚâ„˘ti AI Developer pentru Energy Project Design.
-RĂ„Âspunzi DOAR JSON valid. Nu folosi markdown.
-GenereazĂ„Â update-uri sigure, aditive, pentru site.
-Nu ÄŚâ„˘terge funcÄŚâ€şii existente.
+EĂ„ĹšĂ˘â€žËti AI Developer pentru Energy Project Design.
+RÄ‚â€žĂ‚Âspunzi DOAR JSON valid. Nu folosi markdown.
+GenereazÄ‚â€žĂ‚Â update-uri sigure, aditive, pentru site.
+Nu Ă„ĹšĂ˘â€žËterge funcĂ„ĹšĂ˘â‚¬Ĺźii existente.
 Nu expune chei, parole sau secrete.
-Nu genera cod care ruleazĂ„Â comenzi de sistem.
-PoÄŚâ€şi propune modificĂ„Âri doar Ä‚Â®n:
+Nu genera cod care ruleazÄ‚â€žĂ‚Â comenzi de sistem.
+PoĂ„ĹšĂ˘â‚¬Ĺźi propune modificÄ‚â€žĂ‚Âri doar Ă„â€šĂ‚Â®n:
 - public/app.js
 - public/index.html
 - public/style.css
@@ -528,7 +528,7 @@ Schema obligatorie:
   "manualSteps": ["pas manual daca este cazul"]
 }
 
-DacĂ„Â nu poÄŚâ€şi rescrie complet un fiÄŚâ„˘ier Ä‚Â®n siguranÄŚâ€şĂ„Â, nu Ä‚Â®l pune Ä‚Â®n files.
+DacÄ‚â€žĂ‚Â nu poĂ„ĹšĂ˘â‚¬Ĺźi rescrie complet un fiĂ„ĹšĂ˘â€žËier Ă„â€šĂ‚Â®n siguranĂ„ĹšĂ˘â‚¬ĹźÄ‚â€žĂ‚Â, nu Ă„â€šĂ‚Â®l pune Ă„â€šĂ‚Â®n files.
 `;
 
   const user = `
@@ -606,8 +606,8 @@ async function applyToGithub(proposal) {
   const repo = process.env.GITHUB_REPO || "Energy-Project-Design";
   const branch = process.env.GITHUB_BRANCH || "main";
 
-  if (!token) throw new Error("GITHUB_TOKEN lipseÄŚâ„˘te.");
-  if (!proposal.files || proposal.files.length === 0) throw new Error("AI nu a propus fiÄŚâ„˘iere aplicabile.");
+  if (!token) throw new Error("GITHUB_TOKEN lipseĂ„ĹšĂ˘â€žËte.");
+  if (!proposal.files || proposal.files.length === 0) throw new Error("AI nu a propus fiĂ„ĹšĂ˘â€žËiere aplicabile.");
 
   const applied = [];
   for (const f of proposal.files) {
@@ -721,7 +721,7 @@ app.post("/api/update/run", async (req, res) => {
       `ID: ${id}`,
       `Creat: ${now()}`,
       `Mod: ${proposal.mode}`,
-      `FiÄŚâ„˘iere propuse: ${proposal.files?.length || 0}`,
+      `FiĂ„ĹšĂ˘â€žËiere propuse: ${proposal.files?.length || 0}`,
       `GitHub apply: ${githubApply ? "DA" : "NU"}`,
       "",
       proposal.summary || "",
@@ -729,7 +729,7 @@ app.post("/api/update/run", async (req, res) => {
       "Task-uri:",
       ...(proposal.tasks || []).map((t, i) => `${i + 1}. ${t.title || ""} | ${t.reason || ""}`),
       "",
-      "FiÄŚâ„˘iere:",
+      "FiĂ„ĹšĂ˘â€žËiere:",
       ...(proposal.files || []).map(f => `- ${f.path}`)
     ].join("\n"));
 
@@ -881,7 +881,7 @@ app.get("/api/auth/google/callback", async (req, res) => {
   <title>Google Login</title>
 </head>
 <body>
-  <p>Autentificare Google reuČ™itÄ. Se revine Ă®n aplicaČ›ie...</p>
+  <p>Autentificare Google reuÄŚâ„˘itĂ„Â. Se revine Ä‚Â®n aplicaÄŚâ€şie...</p>
   <script>
     const user = JSON.parse(atob(${JSON.stringify(encodedUser)}));
     localStorage.setItem("epd_google_user", JSON.stringify(user));
@@ -897,8 +897,132 @@ app.get("/api/auth/google/callback", async (req, res) => {
 
 // === EPD GOOGLE OAUTH ROUTES END ===
 
+
+// === EPD DIRECT UPDATE PATCH START ===
+
+app.use((req, res, next) => {
+  if (req.path.endsWith(".js")) res.type("application/javascript; charset=utf-8");
+  else if (req.path.endsWith(".css")) res.type("text/css; charset=utf-8");
+  else if (req.path.endsWith(".html")) res.type("text/html; charset=utf-8");
+  next();
+});
+
+function epdSafeUpdatePath(p) {
+  const path = String(p || "").replace(/\\/g, "/").replace(/^\/+/, "");
+  if (!path || path.includes("..")) return null;
+
+  const allowed =
+    path.startsWith("public/") ||
+    path.startsWith("data/") ||
+    path === "package.json" ||
+    path === "README.md";
+
+  return allowed ? path : null;
+}
+
+async function epdGithubGetSha(owner, repo, branch, path) {
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path).replace(/%2F/g, "/")}?ref=${encodeURIComponent(branch)}`;
+  const r = await fetch(url, {
+    headers: {
+      Authorization: "Bearer " + process.env.GITHUB_TOKEN,
+      Accept: "application/vnd.github+json",
+      "User-Agent": "EPD-Self-Update"
+    }
+  });
+
+  if (r.status === 404) return null;
+
+  const data = await r.json();
+  if (!r.ok) throw new Error("GitHub read failed for " + path + ": " + JSON.stringify(data));
+  return data.sha || null;
+}
+
+async function epdGithubPutFile(owner, repo, branch, path, content, message) {
+  const sha = await epdGithubGetSha(owner, repo, branch, path);
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path).replace(/%2F/g, "/")}`;
+
+  const body = {
+    message,
+    branch,
+    content: Buffer.from(String(content || ""), "utf8").toString("base64")
+  };
+
+  if (sha) body.sha = sha;
+
+  const r = await fetch(url, {
+    method: "PUT",
+    headers: {
+      Authorization: "Bearer " + process.env.GITHUB_TOKEN,
+      Accept: "application/vnd.github+json",
+      "Content-Type": "application/json",
+      "User-Agent": "EPD-Self-Update"
+    },
+    body: JSON.stringify(body)
+  });
+
+  const data = await r.json();
+  if (!r.ok) throw new Error("GitHub write failed for " + path + ": " + JSON.stringify(data));
+  return { path, commit: data.commit && data.commit.sha ? data.commit.sha : "" };
+}
+
+app.post("/api/update/direct-apply", async (req, res) => {
+  try {
+    const owner = process.env.GITHUB_OWNER;
+    const repo = process.env.GITHUB_REPO;
+    const branch = process.env.GITHUB_BRANCH || "main";
+
+    if (!process.env.GITHUB_TOKEN || !owner || !repo) {
+      return res.status(400).json({
+        ok: false,
+        error: "GitHub self-update is not configured. Missing GITHUB_TOKEN, GITHUB_OWNER or GITHUB_REPO."
+      });
+    }
+
+    const files = Array.isArray(req.body && req.body.files) ? req.body.files : [];
+    const message = String((req.body && req.body.message) || "EPD direct self update");
+
+    if (!files.length) {
+      return res.status(400).json({ ok: false, error: "No files provided." });
+    }
+
+    const applied = [];
+    const blocked = [];
+
+    for (const f of files) {
+      const safePath = epdSafeUpdatePath(f.path);
+      if (!safePath) {
+        blocked.push({ path: f.path, reason: "Path not allowed." });
+        continue;
+      }
+
+      if (typeof f.content !== "string") {
+        blocked.push({ path: f.path, reason: "Missing string content." });
+        continue;
+      }
+
+      const result = await epdGithubPutFile(owner, repo, branch, safePath, f.content, message + ": " + safePath);
+      applied.push(result);
+    }
+
+    res.json({
+      ok: true,
+      applied,
+      blocked,
+      owner,
+      repo,
+      branch,
+      renderDeployHookConfigured: Boolean(process.env.RENDER_DEPLOY_HOOK)
+    });
+  } catch (err) {
+    console.error("Direct apply error:", err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// === EPD DIRECT UPDATE PATCH END ===
+
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Energy Project Design ruleazĂ„Â pe portul ${PORT}`);
+  console.log(`Energy Project Design ruleazÄ‚â€žĂ‚Â pe portul ${PORT}`);
 });
 
 

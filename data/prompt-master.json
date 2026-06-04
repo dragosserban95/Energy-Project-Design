@@ -1,23 +1,35 @@
 {
   "product": "Energy Project Design Services",
-  "version": "Safe Functions Patch",
-  "activeProfile": {
-    "industry": "Gaze naturale",
-    "workType": "BranČ™amente gaze naturale"
-  },
-  "priorityModules": [
-    "DocumentaČ›ie",
-    "Čtampile",
-    "Email-uri",
-    "VerificÄri VGD",
-    "VerificÄri RTE",
-    "AI Developer chat",
-    "Assistant User"
+  "site": "https://energy-project-design-services.onrender.com",
+  "version": "Global Repair Direct Update",
+  "rules": [
+    "UI în limba română.",
+    "Text salvat UTF-8 fără corupere.",
+    "Frontend curat, fără fragmente duplicate.",
+    "Run Update aplică direct în GitHub prin backend, fără ZIP manual.",
+    "Nu se aplică fișiere în afara zonelor permise.",
+    "Serverul trebuie să păstreze /api/health și app.listen."
   ],
-  "permanentRules": [
-    "Nu Č™terge funcČ›ii existente.",
-    "UI Ă®n limba romĂ˘nÄ.",
-    "AI Developer foloseČ™te backend/OpenAI Č™i GitHub self-update.",
-    "Export blocat pentru Free/Trial/Basic/Expired Č™i permis pentru Developer."
+  "pages": [
+    "Panou principal",
+    "Date proiect",
+    "Date tehnice",
+    "Documentație",
+    "Șabloane OSD",
+    "Calcul",
+    "Ștampile",
+    "Email-uri",
+    "Verificări",
+    "Checklist",
+    "Registru proiecte",
+    "Import / Export",
+    "Planuri și licențe",
+    "Marketplace / Module",
+    "Asistent utilizator",
+    "AI Developer",
+    "Inside",
+    "Diagnostic",
+    "Actualizări",
+    "Construire / Lansare"
   ]
 }
