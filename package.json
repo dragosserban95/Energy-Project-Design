@@ -15,6 +15,7 @@
                          "express":  "latest",
                          "multer":  "latest",
                          "jszip":  "latest",
-                         "uuid":  "latest"
+                         "uuid":  "latest",
+                         "pg":  "^8.13.1"
                      }
 }

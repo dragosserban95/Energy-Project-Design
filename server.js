@@ -1,3 +1,4 @@
+import crypto from "crypto";
 
 import "dotenv/config";
 import express from "express";
@@ -15,6 +16,370 @@ const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 3000;
 
 const app = express();
+
+// === EPD REAL USER ACCOUNTS START ===
+
+const EPD_SITE_URL = String(
+  process.env.EPD_PUBLIC_BASE_URL ||
+  process.env.RENDER_SERVICE_URL ||
+  "https://energy-project-design-services.onrender.com"
+).replace(/\/$/, "");
+
+const EPD_SESSION_COOKIE = process.env.SESSION_COOKIE_NAME || "epd_session";
+const EPD_SESSION_SECRET = process.env.AUTH_SESSION_SECRET || process.env.EPD_UPDATE_SECRET || "epd_local_session_secret_change_me";
+const EPD_DEFAULT_PLAN = process.env.DEFAULT_USER_PLAN || "Free";
+
+let epdPgPool = null;
+
+async function epdGetPgPool() {
+  if (!process.env.DATABASE_URL) return null;
+
+  if (!epdPgPool) {
+    const pg = await import("pg");
+    epdPgPool = new pg.Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: String(process.env.DATABASE_SSL || "").toLowerCase() === "true"
+        ? { rejectUnauthorized: String(process.env.DATABASE_SSL_REJECT_UNAUTHORIZED || "false").toLowerCase() === "true" }
+        : undefined
+    });
+  }
+
+  return epdPgPool;
+}
+
+async function epdEnsureUsersTable() {
+  const pool = await epdGetPgPool();
+  if (!pool) return false;
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS epd_users (
+      id BIGSERIAL PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      name TEXT,
+      picture TEXT,
+      provider TEXT NOT NULL DEFAULT 'local',
+      role TEXT NOT NULL DEFAULT 'User',
+      plan TEXT NOT NULL DEFAULT 'Free',
+      password_hash TEXT,
+      email_verified BOOLEAN NOT NULL DEFAULT false,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_login_at TIMESTAMPTZ
+    );
+  `);
+
+  return true;
+}
+
+function epdNormalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function epdHashPassword(password) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto.pbkdf2Sync(String(password), salt, 120000, 64, "sha512").toString("hex");
+  return salt + ":" + hash;
+}
+
+function epdVerifyPassword(password, stored) {
+  if (!stored || !stored.includes(":")) return false;
+  const [salt, hash] = String(stored).split(":");
+  const test = crypto.pbkdf2Sync(String(password), salt, 120000, 64, "sha512").toString("hex");
+  return crypto.timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(test, "hex"));
+}
+
+function epdPublicUser(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name || row.email,
+    picture: row.picture || "",
+    provider: row.provider || "local",
+    role: row.role || "User",
+    plan: row.plan || EPD_DEFAULT_PLAN,
+    emailVerified: Boolean(row.email_verified),
+    createdAt: row.created_at,
+    lastLoginAt: row.last_login_at
+  };
+}
+
+async function epdFindUserByEmail(email) {
+  const pool = await epdGetPgPool();
+  if (!pool) return null;
+  await epdEnsureUsersTable();
+
+  const result = await pool.query("SELECT * FROM epd_users WHERE email=$1 LIMIT 1", [epdNormalizeEmail(email)]);
+  return result.rows[0] || null;
+}
+
+async function epdCreateLocalUser({ email, password, name }) {
+  const pool = await epdGetPgPool();
+  if (!pool) throw new Error("DATABASE_URL is required for user accounts.");
+  await epdEnsureUsersTable();
+
+  const cleanEmail = epdNormalizeEmail(email);
+  if (!cleanEmail || !String(password || "").trim()) {
+    throw new Error("Email and password are required.");
+  }
+
+  const existing = await epdFindUserByEmail(cleanEmail);
+  if (existing) throw new Error("User already exists.");
+
+  const passwordHash = epdHashPassword(password);
+
+  const result = await pool.query(
+    `INSERT INTO epd_users(email, name, provider, role, plan, password_hash, email_verified, last_login_at)
+     VALUES($1,$2,'local','User',$3,$4,false,NOW())
+     RETURNING *`,
+    [cleanEmail, name || cleanEmail, EPD_DEFAULT_PLAN, passwordHash]
+  );
+
+  return result.rows[0];
+}
+
+async function epdLoginLocalUser({ email, password }) {
+  const row = await epdFindUserByEmail(email);
+  if (!row || !row.password_hash || !epdVerifyPassword(password, row.password_hash)) {
+    throw new Error("Invalid email or password.");
+  }
+
+  const pool = await epdGetPgPool();
+  await pool.query("UPDATE epd_users SET last_login_at=NOW() WHERE email=$1", [row.email]);
+
+  return { ...row, last_login_at: new Date().toISOString() };
+}
+
+async function epdUpsertGoogleUser(googleUser) {
+  const pool = await epdGetPgPool();
+  if (!pool) throw new Error("DATABASE_URL is required for Google user accounts.");
+  await epdEnsureUsersTable();
+
+  const cleanEmail = epdNormalizeEmail(googleUser.email);
+  if (!cleanEmail) throw new Error("Google account email missing.");
+
+  const result = await pool.query(
+    `INSERT INTO epd_users(email, name, picture, provider, role, plan, email_verified, last_login_at)
+     VALUES($1,$2,$3,'google','User',$4,$5,NOW())
+     ON CONFLICT(email) DO UPDATE SET
+       name=EXCLUDED.name,
+       picture=EXCLUDED.picture,
+       provider='google',
+       email_verified=EXCLUDED.email_verified,
+       last_login_at=NOW()
+     RETURNING *`,
+    [
+      cleanEmail,
+      googleUser.name || cleanEmail,
+      googleUser.picture || "",
+      EPD_DEFAULT_PLAN,
+      Boolean(googleUser.email_verified)
+    ]
+  );
+
+  return result.rows[0];
+}
+
+function epdSignPayload(payload) {
+  const body = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  const sig = crypto.createHmac("sha256", EPD_SESSION_SECRET).update(body).digest("base64url");
+  return body + "." + sig;
+}
+
+function epdVerifyPayload(token) {
+  if (!token || !String(token).includes(".")) return null;
+  const [body, sig] = String(token).split(".");
+  const expected = crypto.createHmac("sha256", EPD_SESSION_SECRET).update(body).digest("base64url");
+
+  if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
+
+  const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
+  if (payload.exp && Date.now() > payload.exp) return null;
+
+  return payload;
+}
+
+function epdReadCookies(req) {
+  const out = {};
+  String(req.headers.cookie || "").split(";").forEach(part => {
+    const idx = part.indexOf("=");
+    if (idx > -1) {
+      const key = part.slice(0, idx).trim();
+      const val = part.slice(idx + 1).trim();
+      out[key] = decodeURIComponent(val);
+    }
+  });
+  return out;
+}
+
+function epdSetSessionCookie(res, user) {
+  const days = Number(process.env.AUTH_TOKEN_EXPIRES_DAYS || 7);
+  const payload = {
+    email: user.email,
+    role: user.role || "User",
+    plan: user.plan || EPD_DEFAULT_PLAN,
+    iat: Date.now(),
+    exp: Date.now() + days * 24 * 60 * 60 * 1000
+  };
+
+  const token = epdSignPayload(payload);
+
+  const secure = String(process.env.SESSION_COOKIE_SECURE || "true").toLowerCase() === "true";
+  const sameSite = process.env.SESSION_COOKIE_SAME_SITE || "lax";
+
+  res.setHeader("Set-Cookie", `${EPD_SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=${sameSite}; Max-Age=${days * 24 * 60 * 60}${secure ? "; Secure" : ""}`);
+}
+
+function epdClearSessionCookie(res) {
+  res.setHeader("Set-Cookie", `${EPD_SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Secure`);
+}
+
+async function epdCurrentUser(req) {
+  const cookies = epdReadCookies(req);
+  const payload = epdVerifyPayload(cookies[EPD_SESSION_COOKIE]);
+  if (!payload || !payload.email) return null;
+
+  const row = await epdFindUserByEmail(payload.email);
+  return epdPublicUser(row) || {
+    email: payload.email,
+    role: payload.role || "User",
+    plan: payload.plan || EPD_DEFAULT_PLAN
+  };
+}
+
+function epdGoogleCallbackUrl() {
+  return process.env.GOOGLE_CALLBACK_URL || (EPD_SITE_URL + "/api/auth/google/callback");
+}
+
+app.get("/api/auth/status", async (req, res) => {
+  try {
+    const dbReady = await epdEnsureUsersTable();
+    res.json({
+      ok: true,
+      databaseConfigured: Boolean(process.env.DATABASE_URL),
+      databaseReady: dbReady,
+      sessionCookie: EPD_SESSION_COOKIE,
+      defaultPlan: EPD_DEFAULT_PLAN,
+      googleEnabled: String(process.env.AUTH_GOOGLE_ENABLED || "").toLowerCase() === "true",
+      callbackUrl: epdGoogleCallbackUrl()
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.get("/api/auth/me", async (req, res) => {
+  try {
+    const user = await epdCurrentUser(req);
+    if (!user) return res.status(401).json({ ok: false, authenticated: false });
+    res.json({ ok: true, authenticated: true, user });
+  } catch (err) {
+    res.status(401).json({ ok: false, authenticated: false, error: err.message });
+  }
+});
+
+app.post("/api/auth/register", async (req, res) => {
+  try {
+    const user = await epdCreateLocalUser(req.body || {});
+    epdSetSessionCookie(res, user);
+    res.json({ ok: true, user: epdPublicUser(user) });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message });
+  }
+});
+
+app.post("/api/auth/email/login", async (req, res) => {
+  try {
+    const user = await epdLoginLocalUser(req.body || {});
+    epdSetSessionCookie(res, user);
+    res.json({ ok: true, user: epdPublicUser(user) });
+  } catch (err) {
+    res.status(401).json({ ok: false, error: err.message });
+  }
+});
+
+app.post("/api/auth/logout", (req, res) => {
+  epdClearSessionCookie(res);
+  res.json({ ok: true });
+});
+
+app.get("/api/auth/google/status", (req, res) => {
+  res.json({
+    ok: true,
+    enabled: String(process.env.AUTH_GOOGLE_ENABLED || "").toLowerCase() === "true",
+    clientIdConfigured: Boolean(process.env.GOOGLE_CLIENT_ID),
+    clientSecretConfigured: Boolean(process.env.GOOGLE_CLIENT_SECRET),
+    callbackUrl: epdGoogleCallbackUrl()
+  });
+});
+
+app.get("/api/auth/google", (req, res) => {
+  if (String(process.env.AUTH_GOOGLE_ENABLED || "").toLowerCase() !== "true") {
+    return res.status(400).send("Google login is disabled.");
+  }
+
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.status(500).send("Google OAuth is not configured.");
+  }
+
+  const params = new URLSearchParams({
+    client_id: process.env.GOOGLE_CLIENT_ID,
+    redirect_uri: epdGoogleCallbackUrl(),
+    response_type: "code",
+    scope: "openid email profile",
+    access_type: "offline",
+    prompt: "select_account"
+  });
+
+  res.redirect("https://accounts.google.com/o/oauth2/v2/auth?" + params.toString());
+});
+
+app.get("/api/auth/google/callback", async (req, res) => {
+  try {
+    const code = req.query.code;
+    if (!code) return res.status(400).send("Missing Google authorization code.");
+
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code: String(code),
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: epdGoogleCallbackUrl(),
+        grant_type: "authorization_code"
+      })
+    });
+
+    const tokenData = await tokenResponse.json();
+
+    if (!tokenResponse.ok) {
+      console.error("Google token error:", tokenData);
+      return res.status(500).send("Google token exchange failed.");
+    }
+
+    const userResponse = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: "Bearer " + tokenData.access_token }
+    });
+
+    const googleUser = await userResponse.json();
+
+    if (!userResponse.ok || !googleUser.email) {
+      console.error("Google userinfo error:", googleUser);
+      return res.status(500).send("Google userinfo failed.");
+    }
+
+    const user = await epdUpsertGoogleUser(googleUser);
+    epdSetSessionCookie(res, user);
+
+    res.redirect("/?auth=google");
+  } catch (err) {
+    console.error("Google callback error:", err);
+    res.status(500).send("Google callback error: " + err.message);
+  }
+});
+
+// === EPD REAL USER ACCOUNTS END ===
+
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
@@ -84,16 +449,16 @@ function localAnalyze(text) {
   const checks = [
     ["login", "Login/Register/Trial/Forgot/Google-ready", "auth"],
     ["google", "Integrare Google-ready", "google"],
-    ["platÄ", "PlÄČ›i configurabile", "payments"],
-    ["plati", "PlÄČ›i configurabile", "payments"],
+    ["platĂ„Â", "PlĂ„ÂÄŚâ€şi configurabile", "payments"],
+    ["plati", "PlĂ„ÂÄŚâ€şi configurabile", "payments"],
     ["openai", "AI Developer prin OpenAI backend", "ai_developer"],
     ["ai developer", "AI Developer prin OpenAI backend", "ai_developer"],
     ["assistant user", "Asistent utilizator local", "assistant_user"],
-    ["prompt", "Upload prompturi Č™i analizÄ", "prompt_upload"],
+    ["prompt", "Upload prompturi ÄŚâ„˘i analizĂ„Â", "prompt_upload"],
     ["update", "Run Update inteligent", "update_center"],
     ["gaze naturale", "Profil gaze naturale", "gas_profile"],
-    ["branČ™amente", "Profil branČ™amente", "gas_branch"],
-    ["osd", "Čabloane OSD", "osd_templates"],
+    ["branÄŚâ„˘amente", "Profil branÄŚâ„˘amente", "gas_branch"],
+    ["osd", "ÄŚÂabloane OSD", "osd_templates"],
     ["placeholder", "Template engine placeholders", "template_engine"],
     ["vgd", "VGD", "vgd"],
     ["rte", "RTE", "rte"],
@@ -107,10 +472,10 @@ function localAnalyze(text) {
     mode: "local",
     createdAt: now(),
     promptSize: String(text || "").length,
-    summary: `AnalizÄ localÄ: ${tasks.length} cerinČ›e detectate.`,
+    summary: `AnalizĂ„Â localĂ„Â: ${tasks.length} cerinÄŚâ€şe detectate.`,
     tasks,
     files: [],
-    manualSteps: ["SeteazÄ OPENAI_API_KEY pentru analizÄ AI realÄ.", "SeteazÄ GITHUB_TOKEN pentru auto-aplicare Ă®n repository."]
+    manualSteps: ["SeteazĂ„Â OPENAI_API_KEY pentru analizĂ„Â AI realĂ„Â.", "SeteazĂ„Â GITHUB_TOKEN pentru auto-aplicare Ä‚Â®n repository."]
   };
 }
 
@@ -118,7 +483,7 @@ function safeJson(text) {
   const raw = String(text || "").trim();
   try { return JSON.parse(raw); } catch {}
   const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error("RÄspunsul AI nu conČ›ine JSON valid.");
+  if (!match) throw new Error("RĂ„Âspunsul AI nu conÄŚâ€şine JSON valid.");
   return JSON.parse(match[0]);
 }
 
@@ -141,13 +506,13 @@ async function aiProposal(combinedPrompt) {
   const model = process.env.EPD_AI_MODEL || "gpt-4.1-mini";
 
   const system = `
-EČ™ti AI Developer pentru Energy Project Design.
-RÄspunzi DOAR JSON valid. Nu folosi markdown.
-GenereazÄ update-uri sigure, aditive, pentru site.
-Nu Č™terge funcČ›ii existente.
+EÄŚâ„˘ti AI Developer pentru Energy Project Design.
+RĂ„Âspunzi DOAR JSON valid. Nu folosi markdown.
+GenereazĂ„Â update-uri sigure, aditive, pentru site.
+Nu ÄŚâ„˘terge funcÄŚâ€şii existente.
 Nu expune chei, parole sau secrete.
-Nu genera cod care ruleazÄ comenzi de sistem.
-PoČ›i propune modificÄri doar Ă®n:
+Nu genera cod care ruleazĂ„Â comenzi de sistem.
+PoÄŚâ€şi propune modificĂ„Âri doar Ä‚Â®n:
 - public/app.js
 - public/index.html
 - public/style.css
@@ -163,7 +528,7 @@ Schema obligatorie:
   "manualSteps": ["pas manual daca este cazul"]
 }
 
-DacÄ nu poČ›i rescrie complet un fiČ™ier Ă®n siguranČ›Ä, nu Ă®l pune Ă®n files.
+DacĂ„Â nu poÄŚâ€şi rescrie complet un fiÄŚâ„˘ier Ä‚Â®n siguranÄŚâ€şĂ„Â, nu Ä‚Â®l pune Ä‚Â®n files.
 `;
 
   const user = `
@@ -241,8 +606,8 @@ async function applyToGithub(proposal) {
   const repo = process.env.GITHUB_REPO || "Energy-Project-Design";
   const branch = process.env.GITHUB_BRANCH || "main";
 
-  if (!token) throw new Error("GITHUB_TOKEN lipseČ™te.");
-  if (!proposal.files || proposal.files.length === 0) throw new Error("AI nu a propus fiČ™iere aplicabile.");
+  if (!token) throw new Error("GITHUB_TOKEN lipseÄŚâ„˘te.");
+  if (!proposal.files || proposal.files.length === 0) throw new Error("AI nu a propus fiÄŚâ„˘iere aplicabile.");
 
   const applied = [];
   for (const f of proposal.files) {
@@ -356,7 +721,7 @@ app.post("/api/update/run", async (req, res) => {
       `ID: ${id}`,
       `Creat: ${now()}`,
       `Mod: ${proposal.mode}`,
-      `FiČ™iere propuse: ${proposal.files?.length || 0}`,
+      `FiÄŚâ„˘iere propuse: ${proposal.files?.length || 0}`,
       `GitHub apply: ${githubApply ? "DA" : "NU"}`,
       "",
       proposal.summary || "",
@@ -364,7 +729,7 @@ app.post("/api/update/run", async (req, res) => {
       "Task-uri:",
       ...(proposal.tasks || []).map((t, i) => `${i + 1}. ${t.title || ""} | ${t.reason || ""}`),
       "",
-      "FiČ™iere:",
+      "FiÄŚâ„˘iere:",
       ...(proposal.files || []).map(f => `- ${f.path}`)
     ].join("\n"));
 
@@ -516,7 +881,7 @@ app.get("/api/auth/google/callback", async (req, res) => {
   <title>Google Login</title>
 </head>
 <body>
-  <p>Autentificare Google reușită. Se revine în aplicație...</p>
+  <p>Autentificare Google reuČ™itÄ. Se revine Ă®n aplicaČ›ie...</p>
   <script>
     const user = JSON.parse(atob(${JSON.stringify(encodedUser)}));
     localStorage.setItem("epd_google_user", JSON.stringify(user));
@@ -533,7 +898,7 @@ app.get("/api/auth/google/callback", async (req, res) => {
 // === EPD GOOGLE OAUTH ROUTES END ===
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Energy Project Design ruleazÄ pe portul ${PORT}`);
+  console.log(`Energy Project Design ruleazĂ„Â pe portul ${PORT}`);
 });
 
 

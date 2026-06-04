@@ -138,3 +138,133 @@ function epdApplyGoogleUserLogin() {
 
 setTimeout(epdApplyGoogleUserLogin, 100);
 
+
+// === EPD REAL USER FRONTEND START ===
+
+async function epdAuthApi(url, options) {
+  const r = await fetch(url, {
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    ...(options || {})
+  });
+  const txt = await r.text();
+  try { return JSON.parse(txt); } catch { return { ok: r.ok, raw: txt }; }
+}
+
+function epdEnterPlatform(user) {
+  USER = user || USER || { role: "User", plan: "Free" };
+
+  if (typeof state === "object" && state) {
+    state.account = {
+      email: USER.email || "",
+      name: USER.name || USER.email || "",
+      provider: USER.provider || "local",
+      role: USER.role || "User",
+      lastLoginAt: new Date().toISOString()
+    };
+
+    state.plan = state.plan || {};
+    state.plan.plan = USER.plan || state.plan.plan || "Free";
+    state.plan.status = state.plan.status || "activ";
+
+    if (typeof saveState === "function") saveState();
+  }
+
+  const loginEl = document.getElementById("login");
+  const appEl = document.getElementById("app");
+
+  if (loginEl) loginEl.classList.add("hidden");
+  if (appEl) appEl.classList.remove("hidden");
+
+  if (typeof buildNav === "function") buildNav();
+  if (typeof openPage === "function") openPage("Panou principal");
+  if (typeof refreshStatus === "function") refreshStatus();
+}
+
+async function epdCheckExistingSession() {
+  try {
+    const res = await epdAuthApi("/api/auth/me", { method: "GET" });
+    if (res.ok && res.authenticated && res.user) {
+      epdEnterPlatform(res.user);
+      return true;
+    }
+  } catch (err) {
+    console.warn("No active session:", err);
+  }
+  return false;
+}
+
+async function epdRegisterAccount() {
+  const email = document.getElementById("epdRegEmail")?.value || "";
+  const password = document.getElementById("epdRegPassword")?.value || "";
+  const name = document.getElementById("epdRegName")?.value || email;
+
+  const res = await epdAuthApi("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ email, password, name })
+  });
+
+  if (!res.ok) return alert(res.error || "Nu s-a putut crea contul.");
+  epdEnterPlatform(res.user);
+}
+
+async function epdEmailLogin() {
+  const email = document.getElementById("user")?.value || "";
+  const password = document.getElementById("pass")?.value || "";
+
+  const res = await epdAuthApi("/api/auth/email/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password })
+  });
+
+  if (res.ok && res.user) {
+    epdEnterPlatform(res.user);
+    return true;
+  }
+
+  return false;
+}
+
+const epdOriginalLogin = typeof login === "function" ? login : null;
+
+login = async function() {
+  const userValue = document.getElementById("user")?.value || "";
+
+  if (userValue.includes("@")) {
+    const ok = await epdEmailLogin();
+    if (ok) return;
+  }
+
+  if (epdOriginalLogin) return epdOriginalLogin();
+
+  alert("Login indisponibil.");
+};
+
+showRegister = function() {
+  const el = document.getElementById("authBox") || document.getElementById("authPanel");
+  if (!el) return alert("Zona de register nu exista in index.html.");
+
+  el.classList.remove("hidden");
+  el.innerHTML = `
+    <h3>Cont nou utilizator</h3>
+    <p class="muted">Contul se salvează în platformă pe baza email-ului.</p>
+    <label>Nume</label>
+    <input id="epdRegName" placeholder="Nume">
+    <label>Email</label>
+    <input id="epdRegEmail" placeholder="email@exemplu.ro">
+    <label>Parolă</label>
+    <input id="epdRegPassword" type="password" placeholder="Parolă">
+    <button class="primary" onclick="epdRegisterAccount()">Creează cont și intră în aplicație</button>
+  `;
+};
+
+async function epdLogout() {
+  await epdAuthApi("/api/auth/logout", { method: "POST" });
+  localStorage.removeItem("epd_google_user");
+  location.reload();
+}
+
+setTimeout(epdCheckExistingSession, 200);
+
+// === EPD REAL USER FRONTEND END ===
+
