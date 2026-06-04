@@ -1,0 +1,22 @@
+﻿services:
+  - type: web
+    name: epd-site-v3
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: PORT
+        value: 10000
+      - key: EPD_AI_MODEL
+        value: gpt-4.1-mini
+      - key: EPD_PUBLIC_BASE_URL
+        value: https://epd-site-v3.onrender.com
+      - key: EPD_ADMIN_USER
+        value: developer
+      - key: EPD_ADMIN_PASSWORD
+        value: Amodilema_99
+      - key: OPENAI_API_KEY
+        sync: false

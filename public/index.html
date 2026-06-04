@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Energy Project Design — V3 Backend Ready</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <section id="login" class="login">
+    <div class="login-card">
+      <div class="mark">EPD</div>
+      <h1>Energy Project Design</h1>
+      <p>Site enterprise cu backend local, prompt upload, AI Developer și Run Update.</p>
+      <label>Utilizator</label>
+      <input id="user" value="developer">
+      <label>Parolă</label>
+      <input id="pass" type="password" value="Amodilema_99">
+      <div class="actions">
+        <button class="primary" onclick="login()">Intră</button>
+        <button onclick="health()">Verifică server</button>
+      </div>
+      <small id="health"></small>
+    </div>
+  </section>
+
+  <section id="app" class="app hidden">
+    <aside>
+      <div class="logo"><div class="mark small">EPD</div><div><h2>EPD V3</h2><p>Backend Ready</p></div></div>
+      <nav id="nav"></nav>
+    </aside>
+    <main>
+      <header>
+        <div><h1 id="title">Panou principal</h1><p id="subtitle">Site pregătit pentru publicare + server local</p></div>
+        <div><button onclick="openPage('Actualizări')">Run Update</button><button class="primary" onclick="exportProject()">Export</button></div>
+      </header>
+      <div class="profile">
+        <div><label>Industrie</label><select id="industry" onchange="profileChanged()"></select></div>
+        <div><label>Tip lucrare</label><select id="workType" onchange="profileChanged()"></select></div>
+        <div class="status"><small>Status</small><strong id="status">Activ</strong></div>
+      </div>
+      <section id="content"></section>
+    </main>
+  </section>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

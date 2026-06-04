@@ -1,0 +1,18 @@
+{
+  "industries": [
+    "Gaze naturale",
+    "Energie electrică",
+    "Apă-canal",
+    "Telecom / fibră optică",
+    "Fotovoltaice",
+    "Construcții / arhitectură",
+    "Infrastructură feroviară"
+  ],
+  "workTypes": [
+    "Branșamente gaze naturale",
+    "Extindere de conductă gaze naturale",
+    "Instalații de utilizare gaze naturale",
+    "Înlocuiri, reabilitări, modernizări conducte gaze naturale",
+    "Studii de fezabilitate gaze naturale"
+  ]
+}

@@ -1,0 +1,7 @@
+﻿node_modules
+.env
+storage/prompts
+storage/downloads
+storage/updates
+storage/logs
+*.log

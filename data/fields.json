@@ -1,0 +1,288 @@
+{
+  "Date proiect": {
+    "Beneficiar": [
+      [
+        "beneficiar",
+        "Beneficiar",
+        "text",
+        true,
+        "Beneficiar Demo"
+      ],
+      [
+        "cui_beneficiar",
+        "CUI/CNP",
+        "text",
+        false,
+        ""
+      ],
+      [
+        "telefon_beneficiar",
+        "Telefon",
+        "text",
+        true,
+        ""
+      ],
+      [
+        "email_beneficiar",
+        "Email",
+        "email",
+        true,
+        "beneficiar@example.com"
+      ],
+      [
+        "reprezentant_beneficiar",
+        "Reprezentant",
+        "text",
+        false,
+        ""
+      ]
+    ],
+    "Amplasament": [
+      [
+        "adresa_lucrare",
+        "Adresă lucrare",
+        "text",
+        true,
+        "Adresă lucrare"
+      ],
+      [
+        "localitate",
+        "Localitate",
+        "text",
+        true,
+        ""
+      ],
+      [
+        "judet",
+        "Județ",
+        "text",
+        true,
+        ""
+      ],
+      [
+        "numar_cadastral",
+        "Număr cadastral",
+        "text",
+        false,
+        ""
+      ],
+      [
+        "carte_funciara",
+        "Carte funciară",
+        "text",
+        false,
+        ""
+      ]
+    ],
+    "Proiect / OSD": [
+      [
+        "numar_proiect",
+        "Număr proiect",
+        "text",
+        true,
+        "EPD-V3-001"
+      ],
+      [
+        "faza_proiect",
+        "Faza proiect",
+        "text",
+        true,
+        "PTh"
+      ],
+      [
+        "tip_lucrare",
+        "Tip lucrare",
+        "text",
+        true,
+        "Branșamente gaze naturale"
+      ],
+      [
+        "osd",
+        "Operator distribuție gaze",
+        "text",
+        true,
+        "OSD Demo"
+      ],
+      [
+        "proiectant",
+        "Proiectant",
+        "text",
+        false,
+        ""
+      ],
+      [
+        "verificator_vgd",
+        "Verificator VGD",
+        "text",
+        false,
+        ""
+      ],
+      [
+        "responsabil_rte",
+        "Responsabil RTE",
+        "text",
+        false,
+        ""
+      ]
+    ]
+  },
+  "Date tehnice": {
+    "Consum / debit": [
+      [
+        "debit_instalat_kw",
+        "Putere termică totală [kW]",
+        "number",
+        true,
+        "58"
+      ],
+      [
+        "debit_calculat_mc_h",
+        "Debit calculat [mc/h]",
+        "number",
+        true,
+        ""
+      ],
+      [
+        "debit_recomandat_mc_h",
+        "Debit recomandat [mc/h]",
+        "number",
+        false,
+        ""
+      ],
+      [
+        "numar_consumatori",
+        "Număr consumatori",
+        "number",
+        false,
+        ""
+      ]
+    ],
+    "Conductă / branșament": [
+      [
+        "presiune_regim",
+        "Regim presiune",
+        "text",
+        true,
+        "joasă presiune"
+      ],
+      [
+        "presiune_disponibila_mbar",
+        "Presiune disponibilă [mbar]",
+        "number",
+        false,
+        "25"
+      ],
+      [
+        "diametru_conducta_existenta_mm",
+        "Diametru conductă [mm]",
+        "number",
+        true,
+        "90"
+      ],
+      [
+        "material_conducta_existenta",
+        "Material conductă",
+        "text",
+        true,
+        "PE"
+      ],
+      [
+        "diametru_bransament_mm",
+        "Diametru branșament [mm]",
+        "number",
+        true,
+        "32"
+      ],
+      [
+        "material_bransament",
+        "Material branșament",
+        "text",
+        true,
+        "PE"
+      ],
+      [
+        "lungime_bransament_m",
+        "Lungime branșament [m]",
+        "number",
+        false,
+        ""
+      ]
+    ],
+    "Piese / execuție": [
+      [
+        "tip_contor",
+        "Tip contor",
+        "text",
+        false,
+        ""
+      ],
+      [
+        "teu_bransament",
+        "Teu/șa branșament",
+        "text",
+        true,
+        ""
+      ],
+      [
+        "mufa_bransament",
+        "Mufă branșament",
+        "text",
+        true,
+        ""
+      ],
+      [
+        "robinet_bransament",
+        "Robinet branșament",
+        "text",
+        true,
+        ""
+      ],
+      [
+        "racord_tranzitie",
+        "Racord tranziție",
+        "text",
+        false,
+        ""
+      ],
+      [
+        "solutie_tehnica",
+        "Soluție tehnică",
+        "textarea",
+        false,
+        ""
+      ],
+      [
+        "observatii_tehnice",
+        "Observații tehnice",
+        "textarea",
+        false,
+        ""
+      ]
+    ]
+  },
+  "Email-uri": {
+    "Livrare": [
+      [
+        "email_destinatar_documentatie",
+        "Email destinatar",
+        "email",
+        false,
+        ""
+      ],
+      [
+        "subiect_email_documentatie",
+        "Subiect",
+        "text",
+        false,
+        ""
+      ],
+      [
+        "mesaj_email_documentatie",
+        "Mesaj",
+        "textarea",
+        false,
+        ""
+      ]
+    ]
+  }
+}

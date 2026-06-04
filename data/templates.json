@@ -1,0 +1,6 @@
+{
+  "cerere_racordare": "CERERE RACORDARE\\n\\nBeneficiar: <beneficiar>\\nAdresă lucrare: <adresa_lucrare>, <localitate>, <judet>\\nOperator: <osd>\\nTip lucrare: <tip_lucrare>\\nData: <data_generare>\\n",
+  "memoriu_tehnic": "MEMORIU TEHNIC\\n\\nProiect: <numar_proiect>\\nBeneficiar: <beneficiar>\\nConductă existentă: <diametru_conducta_existenta_mm> mm, <material_conducta_existenta>, <presiune_regim>.\\nBranșament: <diametru_bransament_mm> mm, <material_bransament>.\\nDebit calculat: <debit_calculat_mc_h> mc/h.\\nContor recomandat: <tip_contor>.\\nPiese: <teu_bransament>, <mufa_bransament>, <robinet_bransament>.\\nSoluție: <solutie_tehnica>\\n",
+  "fisa_tehnica": "FIȘĂ TEHNICĂ\\n\\nTeu/șa: <teu_bransament>\\nMufă: <mufa_bransament>\\nRobinet: <robinet_bransament>\\nRacord: <racord_tranzitie>\\n",
+  "borderou": "BORDEROU DOCUMENTE\\n\\n1. Cerere racordare\\n2. Memoriu tehnic\\n3. Fișă tehnică\\n4. Plan încadrare\\n5. Plan situație\\n6. Autorizări / verificări\\n7. Carte tehnică\\n"
+}
