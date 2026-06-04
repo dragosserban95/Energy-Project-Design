@@ -1,4 +1,18 @@
-﻿
+# EPD AI SELF UPDATE PATCH V2
+# Ruleaza din folderul:
+#   C:\Users\40735\Desktop\Energy-Project-Design-UPLOAD
+#
+# Comanda:
+#   powershell -ExecutionPolicy Bypass -File .\EPD_AI_SELF_UPDATE_PATCH_V2.ps1
+
+$ErrorActionPreference = "Stop"
+
+if (!(Test-Path ".\package.json")) {
+  throw "Nu gasesc package.json. Intra in folderul Energy-Project-Design-UPLOAD."
+}
+
+@'
+
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -84,16 +98,16 @@ function localAnalyze(text) {
   const checks = [
     ["login", "Login/Register/Trial/Forgot/Google-ready", "auth"],
     ["google", "Integrare Google-ready", "google"],
-    ["platÄ", "PlÄČ›i configurabile", "payments"],
-    ["plati", "PlÄČ›i configurabile", "payments"],
+    ["plată", "Plăți configurabile", "payments"],
+    ["plati", "Plăți configurabile", "payments"],
     ["openai", "AI Developer prin OpenAI backend", "ai_developer"],
     ["ai developer", "AI Developer prin OpenAI backend", "ai_developer"],
     ["assistant user", "Asistent utilizator local", "assistant_user"],
-    ["prompt", "Upload prompturi Č™i analizÄ", "prompt_upload"],
+    ["prompt", "Upload prompturi și analiză", "prompt_upload"],
     ["update", "Run Update inteligent", "update_center"],
     ["gaze naturale", "Profil gaze naturale", "gas_profile"],
-    ["branČ™amente", "Profil branČ™amente", "gas_branch"],
-    ["osd", "Čabloane OSD", "osd_templates"],
+    ["branșamente", "Profil branșamente", "gas_branch"],
+    ["osd", "Șabloane OSD", "osd_templates"],
     ["placeholder", "Template engine placeholders", "template_engine"],
     ["vgd", "VGD", "vgd"],
     ["rte", "RTE", "rte"],
@@ -107,10 +121,10 @@ function localAnalyze(text) {
     mode: "local",
     createdAt: now(),
     promptSize: String(text || "").length,
-    summary: `AnalizÄ localÄ: ${tasks.length} cerinČ›e detectate.`,
+    summary: `Analiză locală: ${tasks.length} cerințe detectate.`,
     tasks,
     files: [],
-    manualSteps: ["SeteazÄ OPENAI_API_KEY pentru analizÄ AI realÄ.", "SeteazÄ GITHUB_TOKEN pentru auto-aplicare Ă®n repository."]
+    manualSteps: ["Setează OPENAI_API_KEY pentru analiză AI reală.", "Setează GITHUB_TOKEN pentru auto-aplicare în repository."]
   };
 }
 
@@ -118,7 +132,7 @@ function safeJson(text) {
   const raw = String(text || "").trim();
   try { return JSON.parse(raw); } catch {}
   const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error("RÄspunsul AI nu conČ›ine JSON valid.");
+  if (!match) throw new Error("Răspunsul AI nu conține JSON valid.");
   return JSON.parse(match[0]);
 }
 
@@ -141,13 +155,13 @@ async function aiProposal(combinedPrompt) {
   const model = process.env.EPD_AI_MODEL || "gpt-4.1-mini";
 
   const system = `
-EČ™ti AI Developer pentru Energy Project Design.
-RÄspunzi DOAR JSON valid. Nu folosi markdown.
-GenereazÄ update-uri sigure, aditive, pentru site.
-Nu Č™terge funcČ›ii existente.
+Ești AI Developer pentru Energy Project Design.
+Răspunzi DOAR JSON valid. Nu folosi markdown.
+Generează update-uri sigure, aditive, pentru site.
+Nu șterge funcții existente.
 Nu expune chei, parole sau secrete.
-Nu genera cod care ruleazÄ comenzi de sistem.
-PoČ›i propune modificÄri doar Ă®n:
+Nu genera cod care rulează comenzi de sistem.
+Poți propune modificări doar în:
 - public/app.js
 - public/index.html
 - public/style.css
@@ -163,7 +177,7 @@ Schema obligatorie:
   "manualSteps": ["pas manual daca este cazul"]
 }
 
-DacÄ nu poČ›i rescrie complet un fiČ™ier Ă®n siguranČ›Ä, nu Ă®l pune Ă®n files.
+Dacă nu poți rescrie complet un fișier în siguranță, nu îl pune în files.
 `;
 
   const user = `
@@ -241,8 +255,8 @@ async function applyToGithub(proposal) {
   const repo = process.env.GITHUB_REPO || "Energy-Project-Design";
   const branch = process.env.GITHUB_BRANCH || "main";
 
-  if (!token) throw new Error("GITHUB_TOKEN lipseČ™te.");
-  if (!proposal.files || proposal.files.length === 0) throw new Error("AI nu a propus fiČ™iere aplicabile.");
+  if (!token) throw new Error("GITHUB_TOKEN lipsește.");
+  if (!proposal.files || proposal.files.length === 0) throw new Error("AI nu a propus fișiere aplicabile.");
 
   const applied = [];
   for (const f of proposal.files) {
@@ -356,7 +370,7 @@ app.post("/api/update/run", async (req, res) => {
       `ID: ${id}`,
       `Creat: ${now()}`,
       `Mod: ${proposal.mode}`,
-      `FiČ™iere propuse: ${proposal.files?.length || 0}`,
+      `Fișiere propuse: ${proposal.files?.length || 0}`,
       `GitHub apply: ${githubApply ? "DA" : "NU"}`,
       "",
       proposal.summary || "",
@@ -364,7 +378,7 @@ app.post("/api/update/run", async (req, res) => {
       "Task-uri:",
       ...(proposal.tasks || []).map((t, i) => `${i + 1}. ${t.title || ""} | ${t.reason || ""}`),
       "",
-      "FiČ™iere:",
+      "Fișiere:",
       ...(proposal.files || []).map(f => `- ${f.path}`)
     ].join("\n"));
 
@@ -406,6 +420,52 @@ app.get("/api/downloads", (req, res) => {
 });
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Energy Project Design ruleazÄ pe portul ${PORT}`);
+  console.log(`Energy Project Design rulează pe portul ${PORT}`);
 });
 
+'@ | Set-Content ".\server.js" -Encoding UTF8
+
+$pkg = Get-Content ".\package.json" -Raw | ConvertFrom-Json
+if (!$pkg.scripts) { $pkg | Add-Member -NotePropertyName scripts -NotePropertyValue ([pscustomobject]@{}) -Force }
+$pkg.scripts | Add-Member -NotePropertyName start -NotePropertyValue "node server.js" -Force
+
+if (!$pkg.dependencies) { $pkg | Add-Member -NotePropertyName dependencies -NotePropertyValue ([pscustomobject]@{}) -Force }
+if ($pkg.dependencies.PSObject.Properties.Name -contains "@openai/openai") {
+  $pkg.dependencies.PSObject.Properties.Remove("@openai/openai")
+}
+$pkg.dependencies | Add-Member -NotePropertyName openai -NotePropertyValue "latest" -Force
+$pkg.dependencies | Add-Member -NotePropertyName cors -NotePropertyValue "latest" -Force
+$pkg.dependencies | Add-Member -NotePropertyName dotenv -NotePropertyValue "latest" -Force
+$pkg.dependencies | Add-Member -NotePropertyName express -NotePropertyValue "latest" -Force
+$pkg.dependencies | Add-Member -NotePropertyName multer -NotePropertyValue "latest" -Force
+$pkg.dependencies | Add-Member -NotePropertyName jszip -NotePropertyValue "latest" -Force
+$pkg.dependencies | Add-Member -NotePropertyName uuid -NotePropertyValue "latest" -Force
+$pkg | ConvertTo-Json -Depth 30 | Set-Content ".\package.json" -Encoding UTF8
+
+@"
+AI SELF UPDATE V2 ACTIVAT
+
+Render Environment Variables recomandate:
+OPENAI_API_KEY
+EPD_AI_MODEL=gpt-4.1-mini
+EPD_PUBLIC_BASE_URL=https://energy-project-design.onrender.com
+EPD_ADMIN_USER=developer
+EPD_ADMIN_PASSWORD=Amodilema_99
+
+Pentru auto-modificare reala:
+GITHUB_TOKEN = token GitHub cu Contents Read/Write pe repo
+GITHUB_OWNER = dragosserban95
+GITHUB_REPO = Energy-Project-Design
+GITHUB_BRANCH = main
+EPD_AUTO_APPLY_GITHUB = true
+EPD_UPDATE_SECRET = parola-interna-aleasa
+RENDER_DEPLOY_HOOK = deploy hook URL din Render, optional dar recomandat
+"@ | Set-Content ".\README_AI_SELF_UPDATE.txt" -Encoding UTF8
+
+npm install
+
+git add .
+git commit -m "Enable AI Developer self update V2" 2>$null
+git push origin main
+
+Write-Host "GATA. Patch V2 trimis pe GitHub. In Render: Manual Deploy -> Deploy latest commit."
