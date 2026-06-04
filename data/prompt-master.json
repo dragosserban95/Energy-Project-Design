@@ -1,54 +1,23 @@
 {
-  "product": "Energy Project Design",
-  "version": "V3 Backend Ready",
+  "product": "Energy Project Design Services",
+  "version": "Safe Functions Patch",
   "activeProfile": {
     "industry": "Gaze naturale",
     "workType": "Branșamente gaze naturale"
   },
-  "lockedProfiles": [
-    "Extindere de conductă gaze naturale",
-    "Instalații de utilizare gaze naturale",
-    "Înlocuiri, reabilitări, modernizări conducte gaze naturale",
-    "Studii de fezabilitate gaze naturale",
-    "Energie electrică",
-    "Apă-canal",
-    "Telecom / fibră optică",
-    "Fotovoltaice",
-    "Construcții",
-    "Infrastructură feroviară"
-  ],
-  "permanentRules": [
-    "Site/aplicație enterprise în română.",
-    "Doar Gaze naturale + Branșamente gaze naturale este activ momentan.",
-    "Restul profilurilor sunt vizibile, dar blocate până la configurare Service/Developer.",
-    "AI Developer folosește OpenAI doar prin backend, niciodată direct în frontend.",
-    "Assistant User rulează comenzi interne locale și nu expune Developer/Inside.",
-    "Run Update generează pachete de update, rapoarte și task-uri pe baza prompturilor încărcate.",
-    "Serverul poate rula pe PC-ul utilizatorului și poate fi expus prin domeniu/tunnel.",
-    "Nu se rulează cod arbitrar nesigur din prompturi; update-ul se generează ca pachet verificabil."
-  ],
-  "pages": [
-    "Panou principal",
-    "Date proiect",
-    "Date tehnice",
-    "Departamente",
+  "priorityModules": [
     "Documentație",
     "Ștampile",
     "Email-uri",
-    "Verificări",
-    "Checklist",
-    "Șabloane OSD",
-    "Calcul",
-    "Registru proiecte",
-    "Import / Export",
-    "Planuri și licențe",
-    "Marketplace / Module",
-    "Asistent utilizator",
-    "AI Developer",
-    "Inside",
-    "Diagnostic",
-    "Actualizări",
-    "Construire / Lansare"
+    "Verificări VGD",
+    "Verificări RTE",
+    "AI Developer chat",
+    "Assistant User"
   ],
-  "newPrompt": "Acesta este un prompt nou generat pentru utilizarea în aplicație."
+  "permanentRules": [
+    "Nu șterge funcții existente.",
+    "UI în limba română.",
+    "AI Developer folosește backend/OpenAI și GitHub self-update.",
+    "Export blocat pentru Free/Trial/Basic/Expired și permis pentru Developer."
+  ]
 }

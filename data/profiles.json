@@ -5,7 +5,7 @@
     "Apă-canal",
     "Telecom / fibră optică",
     "Fotovoltaice",
-    "Construcții / arhitectură",
+    "Construcții",
     "Infrastructură feroviară"
   ],
   "workTypes": [
@@ -14,5 +14,9 @@
     "Instalații de utilizare gaze naturale",
     "Înlocuiri, reabilitări, modernizări conducte gaze naturale",
     "Studii de fezabilitate gaze naturale"
-  ]
+  ],
+  "active": {
+    "industry": "Gaze naturale",
+    "workType": "Branșamente gaze naturale"
+  }
 }
