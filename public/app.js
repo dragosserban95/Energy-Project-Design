@@ -1,4 +1,4 @@
-const SITE_URL = "https://energy-project-design-services.onrender.com";
+﻿const SITE_URL = "https://energy-project-design-services.onrender.com";
 
 let CONFIG = {};
 let USER = null;
@@ -28,6 +28,7 @@ const pages = [
   "AI Developer",
   "Inside",
   "Diagnostic",
+  "Verifică documentație",
   "Actualizări",
   "Construire / Lansare"
 ];
@@ -703,3 +704,209 @@ function pageLaunch(){
 function pageGeneric(){
   content('<div class="card"><h3>' + esc(currentPage) + '</h3><p>Pagină pregătită operațional.</p></div>');
 }
+// === EPD DEEP VALIDATION PATCH START ===
+const EPD_PLACEHOLDER_REGISTRY = {
+  "Login": ["user","email","password","provider_google","role","plan","auth_status","last_login","login_error","session_id"],
+  "Panou principal": ["project_status","workflow_percent","active_plan","missing_items_count","last_update","quick_action","site_url"],
+  "Date proiect": ["beneficiar","adresa_lucrare","localitate","judet","telefon","email","osd","tip_lucrare","industrie","numar_contract","data_contract","proiectant","executant","responsabil_proiect","numar_documentatie","revizie","observatii","if_project_ready","if_osd_required","calc_project_completion"],
+  "Date tehnice": ["debit_instalat","presiune_regim","diametru_conducta","material_conducta","lungime_bransament","punct_racordare","post_reglare","contor","categorie_consumator","traseu","observatii_tehnice","if_pressure_low","if_debit_high","if_diameter_missing","calc_putere_kw","calc_debit_recomandat","calc_cost_estimativ"],
+  "Departamente": ["departament_curent","rol_utilizator","acces_departament","status_departament","responsabil_departament"],
+  "Documentație": ["document_id","document_title","template_id","template_osd","document_status","document_body","stampila_proiectant","stampila_vgd","stampila_rte","data_document","numar_document","revizie"],
+  "Ștampile": ["stampila_proiectant","stampila_vgd","stampila_rte","stampila_executant","stampila_societate","nume_stampila","rol_stampila","data_upload_stampila","hash_stampila"],
+  "Email-uri": ["email_to","email_cc","email_subject","email_body","email_template","smtp_status","email_status","data_trimitere","atasament_document"],
+  "Verificări": ["verificator_vgd","atestat_vgd","data_verificare_vgd","status_vgd","observatii_vgd","responsabil_rte","autorizatie_rte","data_verificare_rte","status_rte","observatii_rte"],
+  "Verifică documentație": ["verificare_status","verificare_lipsuri","verificare_erori","verificare_avertismente","verificare_placeholder_lipsa","verificare_stampile","verificare_email","verificare_export","raport_verificare"],
+  "Checklist": ["check_date_proiect","check_date_tehnice","check_calcul","check_documente","check_stampile","check_vgd","check_rte","check_email","check_export"],
+  "Șabloane OSD": ["osd","template_osd","cerere_racordare","memoriu_tehnic","fisa_date_tehnice","adresa_osd","conditii_osd"],
+  "Calcul": ["putere_instalata_kw","debit_calculat_mc_h","debit_recomandat_mc_h","contor_orientativ","risc_presiune","estimare_materiale","estimare_cost","rezultat_calcul","observatii_calcul"],
+  "Registru proiecte": ["registru_id","registru_status","registru_data","registru_beneficiar","registru_export"],
+  "Import / Export": ["import_json","import_csv","import_excel","import_pdf","ocr_status","export_json","export_zip","export_pdf","export_blocked_reason"],
+  "Planuri și licențe": ["plan_curent","plan_status","pret_plan","data_activare","data_expirare","billing_provider","export_allowed"],
+  "Marketplace / Module": ["module_id","module_name","module_price","module_status","module_dependency"],
+  "Asistent utilizator": ["user_question","assistant_answer","command_detected","target_page","developer_request"],
+  "AI Developer": ["developer_prompt","target_page","patch_plan","backup_required","validation_required","report_required","api_update_run","direct_apply_status","if_function_rule","calculus_function_rule"],
+  "Placeholders": ["page_name","placeholder_key","placeholder_source","placeholder_required","placeholder_status","placeholder_description"],
+  "Inside": ["inside_access","inside_confirmation_1","inside_confirmation_2","inside_action","inside_audit"],
+  "Diagnostic": ["health_status","config_status","route_status","build_status","frontend_status","backend_status"],
+  "Actualizări": ["manual_prompt","update_result","quota_status","github_status","render_status","last_commit"],
+  "Construire / Lansare": ["site_url","repository","render_autodeploy","build_command","start_command"],
+  "Contact": ["contact_email","smtp_from","company_name","support_message"],
+  "Setări / Cont": ["user_profile","account_plan","logout_action","preferences"],
+  "Loguri / Integritate": ["log_type","log_message","log_date","log_source","integrity_status","export_logs"]
+};
+
+const EPD_CORE_WORKFLOW = ["Date proiect","Date tehnice","Ștampile","Email-uri","Verifică documentație"];
+const EPD_CRITICAL_PROJECT_FIELDS = ["beneficiar","adresa_lucrare","localitate","judet","osd","tip_lucrare","proiectant"];
+const EPD_CRITICAL_TECH_FIELDS = ["debit_instalat","presiune_regim","diametru_conducta","material_conducta","lungime_bransament"];
+
+function epdIsDeveloper(){
+  const role = String((USER && USER.role) || (state && state.plan && state.plan.plan) || "").toLowerCase();
+  const plan = String((state && state.plan && state.plan.plan) || "").toLowerCase();
+  return role.includes("developer") || role.includes("inside") || plan.includes("developer") || plan.includes("inside");
+}
+
+function epdEnsureRuntimeState(){
+  state.dynamicPlaceholders = state.dynamicPlaceholders || {};
+  state.developerPatches = state.developerPatches || [];
+  state.workflowReports = state.workflowReports || [];
+  state.calculusFunctions = state.calculusFunctions || {
+    "Date proiect": ["calc_project_completion", "if_project_ready", "if_osd_required"],
+    "Date tehnice": ["calc_putere_kw", "calc_debit_recomandat", "calc_cost_estimativ", "if_pressure_low", "if_debit_high", "if_diameter_missing"]
+  };
+  saveState();
+}
+
+function epdWorkflowScan(){
+  epdEnsureRuntimeState();
+  const issues = [];
+  const warnings = [];
+  const ok = [];
+  EPD_CRITICAL_PROJECT_FIELDS.forEach(function(k){
+    if(!state.project || !state.project[k]) issues.push("Date proiect: lipsește <" + k + ">"); else ok.push("Date proiect: <" + k + "> completat");
+  });
+  EPD_CRITICAL_TECH_FIELDS.forEach(function(k){
+    if(!state.technical || !state.technical[k]) issues.push("Date tehnice: lipsește <" + k + ">"); else ok.push("Date tehnice: <" + k + "> completat");
+  });
+  if(!state.stamps || !state.stamps.length) warnings.push("Ștampile: nu există ștampile mapate.");
+  if(!state.documents || !state.documents.length) warnings.push("Documentație: nu există documente generate/salvate.");
+  if(!state.emails || !state.emails.length) warnings.push("Email-uri: nu există emailuri pregătite.");
+  if(state.vgd && state.vgd.status_vgd !== "admis") warnings.push("VGD: status diferit de admis.");
+  if(state.rte && state.rte.status_rte !== "admis") warnings.push("RTE: status diferit de admis.");
+  if(typeof canExport === "function" && !canExport()) warnings.push("Export: blocat pentru planul curent.");
+  Object.keys(EPD_PLACEHOLDER_REGISTRY).forEach(function(page){
+    (EPD_PLACEHOLDER_REGISTRY[page] || []).forEach(function(ph){ ok.push("Placeholder registru: " + page + "::<" + ph + ">"); });
+  });
+  return { generatedAt:new Date().toISOString(), coreWorkflow:EPD_CORE_WORKFLOW, issues:issues, warnings:warnings, ok:ok, status:issues.length ? "necesită completări" : "validare critică trecută" };
+}
+
+function epdDownloadText(filename, text){
+  const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+function epdPlaceholderRows(){
+  epdEnsureRuntimeState();
+  const dyn = state.dynamicPlaceholders || {};
+  return Object.keys(EPD_PLACEHOLDER_REGISTRY).map(function(page){
+    const base = EPD_PLACEHOLDER_REGISTRY[page] || [];
+    const extra = dyn[page] || [];
+    const all = Array.from(new Set(base.concat(extra)));
+    return '<div class="epd-placeholder-page"><h4>' + esc(page) + '</h4><div>' + all.map(function(ph){ return '<span class="placeholder">&lt;' + esc(ph) + '&gt;</span>'; }).join('') + '</div><div class="row"><input id="ph_' + esc(page).replace(/[^a-zA-Z0-9]/g,'_') + '" placeholder="placeholder_nou"><button onclick="epdAddPlaceholder(\'' + page.replace(/'/g,"\\'") + '\')">Adaugă placeholder</button></div></div>';
+  }).join('');
+}
+
+function epdAddPlaceholder(page){
+  epdEnsureRuntimeState();
+  const id = 'ph_' + page.replace(/[^a-zA-Z0-9]/g,'_');
+  const el = document.getElementById(id);
+  const val = String((el && el.value) || '').trim().replace(/[<>\s]/g, '_');
+  if(!val) return alert('Introdu un nume de placeholder.');
+  state.dynamicPlaceholders[page] = state.dynamicPlaceholders[page] || [];
+  if(!state.dynamicPlaceholders[page].includes(val)) state.dynamicPlaceholders[page].push(val);
+  logAction('Placeholders', 'Adăugat <' + val + '> pentru pagina ' + page);
+  saveState();
+  placeholdersPage();
+}
+
+function placeholdersPage(){
+  epdEnsureRuntimeState();
+  if(!epdIsDeveloper()){
+    return content('<div class="card locked"><h3>Placeholders</h3><p class="bad">Această pagină este disponibilă doar pentru Developer / Inside.</p></div>');
+  }
+  const scan = epdWorkflowScan();
+  content('<div class="card epd-dev-only"><h3>Placeholders Developer-only</h3><p>Registru complet de placeholders structurat pe fiecare pagină. Include placeholdere din loguri și placeholdere noi pentru workflow, if-rules și calculus functions.</p><div class="row"><button class="primary" onclick="epdExportPlaceholders()">Exportă registru placeholders</button><button onclick="documentVerificationPage()">Verifică documentație</button><button onclick="aiDeveloperPage()">AI Developer</button></div></div><div class="card"><h3>Workflow critic</h3><p>' + EPD_CORE_WORKFLOW.map(esc).join(' → ') + '</p><p>Status scan: <b>' + esc(scan.status) + '</b></p></div><div class="epd-placeholder-grid">' + epdPlaceholderRows() + '</div>');
+}
+
+function epdExportPlaceholders(){
+  epdEnsureRuntimeState();
+  const payload = { generatedAt:new Date().toISOString(), visibility:'Developer-only', registry:EPD_PLACEHOLDER_REGISTRY, dynamic:state.dynamicPlaceholders, workflow:EPD_CORE_WORKFLOW };
+  epdDownloadText('EPD_placeholders_registry.json', JSON.stringify(payload,null,2));
+  logAction('Placeholders', 'Registru placeholders exportat');
+}
+
+function documentVerificationPage(){
+  const scan = epdWorkflowScan();
+  state.workflowReports = state.workflowReports || [];
+  state.workflowReports.unshift(scan);
+  saveState();
+  const issueRows = scan.issues.length ? scan.issues.map(function(x){ return '<li class="epd-severity-critical">' + esc(x) + '</li>'; }).join('') : '<li class="epd-severity-ok">Nu există lipsuri critice în Date proiect / Date tehnice.</li>';
+  const warnRows = scan.warnings.length ? scan.warnings.map(function(x){ return '<li class="epd-severity-warn">' + esc(x) + '</li>'; }).join('') : '<li class="epd-severity-ok">Nu există avertismente majore.</li>';
+  content('<div class="card epd-workflow-focus"><h3>Verifică documentație</h3><p>Verificare serioasă a workflow-ului principal: Date proiect, Date tehnice, Ștampile, Email-uri și Verificări VGD/RTE.</p><div class="row"><button class="primary" onclick="epdExportWorkflowReport()">Exportă raport verificare</button><button onclick="openPage(\'Date proiect\')">Date proiect</button><button onclick="openPage(\'Date tehnice\')">Date tehnice</button><button onclick="openPage(\'Ștampile\')">Ștampile</button><button onclick="openPage(\'Email-uri\')">Email-uri</button></div></div><div class="grid"><div class="card"><h3>Lipsuri critice</h3><ul>' + issueRows + '</ul></div><div class="card"><h3>Avertismente</h3><ul>' + warnRows + '</ul></div></div><div class="card"><h3>Placeholders verificate</h3><p>Total pagini în registru: ' + Object.keys(EPD_PLACEHOLDER_REGISTRY).length + '</p><button onclick="placeholdersPage()">Deschide Placeholders</button></div><div class="card"><h3>Raport brut</h3><pre>' + esc(JSON.stringify(scan,null,2)) + '</pre></div>');
+}
+
+function epdExportWorkflowReport(){
+  const scan = epdWorkflowScan();
+  const md = '# Raport verificare documentație EPD\n\nGenerat: ' + scan.generatedAt + '\n\n## Workflow critic\n' + scan.coreWorkflow.map(function(x){return '- ' + x;}).join('\n') + '\n\n## Lipsuri critice\n' + (scan.issues.length ? scan.issues.map(function(x){return '- ' + x;}).join('\n') : '- Nu există lipsuri critice.') + '\n\n## Avertismente\n' + (scan.warnings.length ? scan.warnings.map(function(x){return '- ' + x;}).join('\n') : '- Nu există avertismente majore.') + '\n';
+  epdDownloadText('EPD_raport_verificare_documentatie.md', md);
+  logAction('Verifică documentație', 'Raport verificare exportat');
+}
+
+function epdGenerateDeveloperPatchPlan(){
+  epdEnsureRuntimeState();
+  const req = document.getElementById('devPatchRequest') ? document.getElementById('devPatchRequest').value : '';
+  const target = document.getElementById('devTargetPage') ? document.getElementById('devTargetPage').value : 'Date proiect';
+  const scan = epdWorkflowScan();
+  const wantsCalculus = /calcul|calculus|funcții if|if |date tehnice|date proiect/i.test(req);
+  const plan = {
+    generatedAt:new Date().toISOString(),
+    targetPage:target,
+    request:req,
+    interpretation:'Cererea este tratată ca reparație/completare a funcțiilor lipsă sau incomplete, nu ca funcții noi inventate.',
+    backupRequired:true,
+    validationRequired:true,
+    workflowFocus:EPD_CORE_WORKFLOW,
+    placeholders:EPD_PLACEHOLDER_REGISTRY[target] || [],
+    calculusFunctions:wantsCalculus ? (state.calculusFunctions[target] || ['if_condition_rule','calc_derived_value']) : [],
+    scanSummary:{ issues:scan.issues, warnings:scan.warnings },
+    implementationSteps:[
+      '1. Scanează pagina țintă și handler-ele ei.',
+      '2. Adaugă câmpuri/placeholder-e lipsă în registrul paginii.',
+      '3. Leagă funcțiile de Date proiect și Date tehnice când afectează documentația.',
+      '4. Adaugă validări if/calculus unde cererea implică reguli sau calcul.',
+      '5. Validează workflow-ul: Date proiect → Date tehnice → Ștampile → Email-uri → Verifică documentație.',
+      '6. Generează raport și păstrează backup.'
+    ]
+  };
+  state.developerPatches.unshift(plan);
+  saveState();
+  const out = JSON.stringify(plan,null,2);
+  const el = document.getElementById('devPatchOutput');
+  if(el) el.textContent = out;
+  logAction('AI Developer', 'Patch plan generat pentru ' + target);
+  return plan;
+}
+
+async function epdSendPatchToBackend(){
+  const plan = epdGenerateDeveloperPatchPlan();
+  const text = 'EPD CONTROLLED PAGE PATCH\n' + JSON.stringify(plan,null,2);
+  const out = document.getElementById('devPatchOutput');
+  try{
+    const res = await api('/api/update/run', {method:'POST', body:JSON.stringify({text:text})});
+    if(out) out.textContent = JSON.stringify(res,null,2);
+    logAction('AI Developer', 'Patch trimis către /api/update/run');
+  } catch(e){
+    if(out) out.textContent = 'Nu am putut apela /api/update/run: ' + e.message + '\n\nPlan local:\n' + JSON.stringify(plan,null,2);
+    logAction('AI Developer', 'Eroare /api/update/run: ' + e.message);
+  }
+}
+
+function aiDeveloperPage(){
+  epdEnsureRuntimeState();
+  if(!epdIsDeveloper()){
+    return content('<div class="card locked"><h3>AI Developer</h3><p class="bad">Acces permis doar pentru Developer / Inside.</p></div>');
+  }
+  const opts = Object.keys(EPD_PLACEHOLDER_REGISTRY).map(function(p){ return '<option>' + esc(p) + '</option>'; }).join('');
+  content('<div class="card epd-dev-only"><h3>AI Developer - Deep Repair Controller</h3><p>Acest modul interpretează „adaugă funcții” ca reparare/completare a funcțiilor lipsă din pagina țintă. Poate genera planuri pentru modificări în pagini, inclusiv if/calculus functions în Date proiect și Date tehnice.</p><div class="grid"><label>Pagina țintă<select id="devTargetPage">' + opts + '</select></label><label>Tip update<select id="devPatchType"><option>Reparație funcții lipsă</option><option>Adăugare if/calculus functions</option><option>Conectare backend/API</option><option>Validare workflow</option><option>Placeholder mapping</option></select></label></div><label>Cerință Developer<textarea id="devPatchRequest" placeholder="Ex: adaugă if calculus functions în Date proiect și Date tehnice, conectate la Verifică documentație"></textarea></label><div class="row"><button class="primary" onclick="epdGenerateDeveloperPatchPlan()">Generează patch plan</button><button onclick="epdSendPatchToBackend()">Trimite către Run Update backend</button><button onclick="placeholdersPage()">Placeholders</button><button onclick="documentVerificationPage()">Verifică documentație</button></div></div><div class="card"><h3>Output patch</h3><pre id="devPatchOutput" class="epd-patch-plan">Aici apare planul.</pre></div><div class="card"><h3>Istoric patch-uri locale</h3><pre>' + esc(JSON.stringify(state.developerPatches || [], null, 2)) + '</pre></div>');
+}
+
+const epdOriginalDashboardPage = typeof dashboardPage === 'function' ? dashboardPage : null;
+dashboardPage = function(){
+  const scan = epdWorkflowScan();
+  content('<div class="grid3"><div class="card"><h3>Workflow EPD</h3><b>' + EPD_CORE_WORKFLOW.map(esc).join(' → ') + '</b><p>Status: ' + esc(scan.status) + '</p></div><div class="card"><h3>Lipsuri critice</h3><b>' + scan.issues.length + '</b><p>În Date proiect / Date tehnice.</p></div><div class="card"><h3>Plan</h3><b>' + esc(state.plan.plan) + '</b><p>Export: ' + (canExport() ? 'permis' : 'blocat') + '</p></div></div><div class="card epd-workflow-focus"><h3>Acțiuni principale</h3><div class="row"><button onclick="openPage(\'Date proiect\')">Date proiect</button><button onclick="openPage(\'Date tehnice\')">Date tehnice</button><button onclick="openPage(\'Ștampile\')">Ștampile</button><button onclick="openPage(\'Email-uri\')">Email-uri</button><button class="primary" onclick="documentVerificationPage()">Verifică documentație</button><button onclick="placeholdersPage()">Placeholders</button></div></div><div class="card"><h3>Raport rapid</h3><pre>' + esc(JSON.stringify(scan,null,2)) + '</pre></div>');
+};
+
+// === EPD DEEP VALIDATION PATCH END ===
+
