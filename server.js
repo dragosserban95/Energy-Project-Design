@@ -405,7 +405,134 @@ app.get("/api/downloads", (req, res) => {
   res.json({ ok: true, files });
 });
 
+
+// === EPD GOOGLE OAUTH ROUTES START ===
+
+function epdPublicBaseUrl() {
+  return String(
+    process.env.EPD_PUBLIC_BASE_URL ||
+    process.env.RENDER_SERVICE_URL ||
+    "https://energy-project-design-services.onrender.com"
+  ).replace(/\/$/, "");
+}
+
+function epdGoogleCallbackUrl() {
+  return process.env.GOOGLE_CALLBACK_URL || (epdPublicBaseUrl() + "/api/auth/google/callback");
+}
+
+app.get("/api/auth/google/status", (req, res) => {
+  res.json({
+    ok: true,
+    enabled: String(process.env.AUTH_GOOGLE_ENABLED || "").toLowerCase() === "true",
+    clientIdConfigured: Boolean(process.env.GOOGLE_CLIENT_ID),
+    clientSecretConfigured: Boolean(process.env.GOOGLE_CLIENT_SECRET),
+    callbackUrl: epdGoogleCallbackUrl()
+  });
+});
+
+app.get("/api/auth/google", (req, res) => {
+  if (String(process.env.AUTH_GOOGLE_ENABLED || "").toLowerCase() !== "true") {
+    return res.status(400).send("Google login is disabled. Set AUTH_GOOGLE_ENABLED=true.");
+  }
+
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.status(500).send("Google OAuth is not configured. Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET.");
+  }
+
+  const params = new URLSearchParams({
+    client_id: process.env.GOOGLE_CLIENT_ID,
+    redirect_uri: epdGoogleCallbackUrl(),
+    response_type: "code",
+    scope: "openid email profile",
+    access_type: "offline",
+    prompt: "select_account"
+  });
+
+  res.redirect("https://accounts.google.com/o/oauth2/v2/auth?" + params.toString());
+});
+
+app.get("/api/auth/google/callback", async (req, res) => {
+  try {
+    const code = req.query.code;
+
+    if (!code) {
+      return res.status(400).send("Missing Google authorization code.");
+    }
+
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: new URLSearchParams({
+        code: String(code),
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: epdGoogleCallbackUrl(),
+        grant_type: "authorization_code"
+      })
+    });
+
+    const tokenData = await tokenResponse.json();
+
+    if (!tokenResponse.ok) {
+      console.error("Google token error:", tokenData);
+      return res.status(500).send("Google token exchange failed.");
+    }
+
+    const userResponse = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: {
+        Authorization: "Bearer " + tokenData.access_token
+      }
+    });
+
+    const googleUser = await userResponse.json();
+
+    if (!userResponse.ok || !googleUser.email) {
+      console.error("Google userinfo error:", googleUser);
+      return res.status(500).send("Google userinfo failed.");
+    }
+
+    const user = {
+      provider: "google",
+      email: googleUser.email,
+      name: googleUser.name || googleUser.email,
+      picture: googleUser.picture || "",
+      emailVerified: Boolean(googleUser.email_verified),
+      role: "User",
+      plan: process.env.DEFAULT_USER_PLAN || "Free",
+      trialDays: Number(process.env.DEFAULT_TRIAL_DAYS || 14),
+      loginAt: new Date().toISOString()
+    };
+
+    const encodedUser = Buffer.from(JSON.stringify(user), "utf8").toString("base64");
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(`<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <title>Google Login</title>
+</head>
+<body>
+  <p>Autentificare Google reușită. Se revine în aplicație...</p>
+  <script>
+    const user = JSON.parse(atob(${JSON.stringify(encodedUser)}));
+    localStorage.setItem("epd_google_user", JSON.stringify(user));
+    window.location.href = "/";
+  </script>
+</body>
+</html>`);
+  } catch (err) {
+    console.error("Google callback error:", err);
+    res.status(500).send("Google callback error.");
+  }
+});
+
+// === EPD GOOGLE OAUTH ROUTES END ===
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Energy Project Design ruleazÄ pe portul ${PORT}`);
 });
+
 
