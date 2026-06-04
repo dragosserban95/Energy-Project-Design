@@ -118,3 +118,40 @@ header p{margin:3px 0 0;color:var(--muted)}
   font-weight: 700;
 }
 
+
+/* EPD production listing addon */
+.epd-prod-nav {
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px;
+  padding: 9px 10px;
+  background: rgba(255,255,255,.06);
+  color: inherit;
+  cursor: pointer;
+}
+.epd-prod-nav:hover {
+  background: rgba(255,255,255,.14);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table th,
+.table td {
+  border-bottom: 1px solid rgba(0,0,0,.12);
+  padding: 8px;
+  vertical-align: top;
+}
+.primary {
+  font-weight: 700;
+}
+.ok {
+  color: #137333;
+  font-weight: 700;
+}
+.bad {
+  color: #b42318;
+  font-weight: 700;
+}
+

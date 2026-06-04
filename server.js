@@ -839,7 +839,310 @@ app.get("/api/developer/deep-scan", (req, res) => {
     missingPlaceholderPages,
     missingPromptPages,
     recommendations: [
-      "Păstrează Login, /api/health și app.listen stabile.",
+      "Păstrează Login, /api/health și 
+// === EPD PRODUCTION LISTING ROUTES START ===
+
+function epdProdReadJson(filePath, fallback) {
+  try {
+    if (!fs.existsSync(filePath)) return fallback;
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch (err) {
+    return fallback;
+  }
+}
+
+function epdProdEnsureDir(dirPath) {
+  if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function epdProdSlug(value) {
+  return String(value || "document")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "document";
+}
+
+function epdProdValuesFromBody(body) {
+  const values = Object.assign({}, body && body.values ? body.values : {}, body || {});
+  values.data_document = values.data_document || new Date().toISOString().slice(0, 10);
+  values.numar_document = values.numar_document || ("EPD-" + Date.now());
+  values.revizie = values.revizie || "0";
+
+  const stamps = values.stamps || {};
+  values.stampila_proiectant = values.stampila_proiectant || stamps.proiectant || "[Ștampilă proiectant neîncărcată]";
+  values.stampila_vgd = values.stampila_vgd || stamps.vgd || "[Ștampilă VGD neîncărcată]";
+  values.stampila_rte = values.stampila_rte || stamps.rte || "[Ștampilă RTE neîncărcată]";
+
+  values.semnatura_vgd = values.semnatura_vgd || "[Semnătură internă VGD necertificată]";
+  values.semnatura_rte = values.semnatura_rte || "[Semnătură internă RTE necertificată]";
+
+  return values;
+}
+
+function epdProdRenderTemplate(text, values) {
+  return String(text || "").replace(/<([a-zA-Z0-9_ăîâșțĂÎÂȘȚ]+)>/g, (match, key) => {
+    return values[key] !== undefined && values[key] !== null && values[key] !== "" ? String(values[key]) : match;
+  });
+}
+
+function epdProdHtmlEscape(value) {
+  return String(value || "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;"
+  }[c]));
+}
+
+function epdProdFeatureIncluded(plan, feature) {
+  const plansFile = path.join(__dirname, "data", "plans.json");
+  const data = epdProdReadJson(plansFile, { plans: [] });
+  const found = (data.plans || []).find(p => p.id === plan || p.name === plan);
+  if (!found) return false;
+  return Array.isArray(found.features) && (found.features.includes(feature) || found.features.includes("all_departments"));
+}
+
+app.get("/api/epd/plans", (req, res) => {
+  const plansFile = path.join(__dirname, "data", "plans.json");
+  const data = epdProdReadJson(plansFile, { plans: [] });
+  res.json({
+    ok: true,
+    site: "https://energy-project-design-services.onrender.com",
+    currency: data.currency || "EUR",
+    purchaseMode: data.purchaseMode || "purchase_intent_demo_ready",
+    plans: data.plans || [],
+    featureAllocationRules: data.featureAllocationRules || {}
+  });
+});
+
+app.post("/api/epd/plans/allocate", (req, res) => {
+  const planId = String((req.body && req.body.planId) || "");
+  const feature = String((req.body && req.body.feature) || "");
+  const allowed = epdProdFeatureIncluded(planId, feature);
+
+  res.json({
+    ok: true,
+    planId,
+    feature,
+    allowed,
+    note: allowed ? "Funcția este alocată planului." : "Funcția nu este alocată planului curent."
+  });
+});
+
+app.post("/api/epd/purchase-intent", (req, res) => {
+  const plansFile = path.join(__dirname, "data", "plans.json");
+  const data = epdProdReadJson(plansFile, { plans: [] });
+  const planId = String((req.body && req.body.planId) || "");
+  const plan = (data.plans || []).find(p => p.id === planId || p.name === planId);
+
+  if (!plan) {
+    return res.status(404).json({
+      ok: false,
+      error: "Plan inexistent.",
+      planId
+    });
+  }
+
+  const intent = {
+    id: "purchase_" + Date.now(),
+    status: "created_demo",
+    providerReady: "Stripe/Netopia/SmartBill connector-ready",
+    plan,
+    amount: plan.price,
+    currency: data.currency || "EUR",
+    createdAt: new Date().toISOString(),
+    nextStep: "Conectează providerul de plată și înlocuiește acest purchase intent demo cu checkout real."
+  };
+
+  res.json({
+    ok: true,
+    purchaseIntent: intent
+  });
+});
+
+app.get("/api/epd/document-templates", (req, res) => {
+  const file = path.join(__dirname, "data", "document-templates-production.json");
+  const data = epdProdReadJson(file, { templates: [] });
+  res.json({
+    ok: true,
+    templates: data.templates || []
+  });
+});
+
+app.post("/api/epd/documents/generate", (req, res) => {
+  const file = path.join(__dirname, "data", "document-templates-production.json");
+  const data = epdProdReadJson(file, { templates: [] });
+  const templateId = String((req.body && req.body.templateId) || "memoriu_tehnic");
+  const template = (data.templates || []).find(t => t.id === templateId) || (data.templates || [])[0];
+
+  if (!template) {
+    return res.status(404).json({
+      ok: false,
+      error: "Nu există template-uri de documente."
+    });
+  }
+
+  const values = epdProdValuesFromBody(req.body || {});
+  const renderedText = epdProdRenderTemplate(template.body, values);
+
+  const html = "<!doctype html><html lang=\"ro\"><head><meta charset=\"utf-8\"><title>" +
+    epdProdHtmlEscape(template.name) +
+    "</title><style>body{font-family:Arial,sans-serif;line-height:1.5;padding:40px;white-space:pre-wrap}.stamp{border:1px solid #333;display:inline-block;padding:8px;margin-top:12px}</style></head><body>" +
+    epdProdHtmlEscape(renderedText) +
+    "</body></html>";
+
+  const outDir = path.join(__dirname, "storage", "documents");
+  epdProdEnsureDir(outDir);
+
+  const base = epdProdSlug(template.name) + "_" + Date.now();
+  const htmlFile = path.join(outDir, base + ".html");
+  const jsonFile = path.join(outDir, base + ".json");
+
+  fs.writeFileSync(htmlFile, html, "utf8");
+  fs.writeFileSync(jsonFile, JSON.stringify({
+    ok: true,
+    template,
+    values,
+    renderedText,
+    generatedAt: new Date().toISOString()
+  }, null, 2), "utf8");
+
+  res.json({
+    ok: true,
+    templateId,
+    name: template.name,
+    renderedText,
+    files: {
+      html: "/downloads/../documents/" + base + ".html",
+      json: "/downloads/../documents/" + base + ".json"
+    },
+    note: "Document generat cu placeholder-e înlocuite și ștampile mapate textual."
+  });
+});
+
+app.post("/api/epd/email/prepare", (req, res) => {
+  const values = epdProdValuesFromBody(req.body || {});
+  const to = String((req.body && req.body.to) || values.email || "");
+  const subjectTemplate = String((req.body && req.body.subject) || "Documentație EPD - <beneficiar>");
+  const bodyTemplate = String((req.body && req.body.body) || "Bună ziua,\n\nVă transmitem documentația pentru <beneficiar>, lucrarea <tip_lucrare>, amplasată la <adresa_lucrare>.\n\nCu stimă,\n<proiectant>");
+
+  const subject = epdProdRenderTemplate(subjectTemplate, values);
+  const body = epdProdRenderTemplate(bodyTemplate, values);
+  const mailto = "mailto:" + encodeURIComponent(to) +
+    "?subject=" + encodeURIComponent(subject) +
+    "&body=" + encodeURIComponent(body);
+
+  const outDir = path.join(__dirname, "storage", "emails");
+  epdProdEnsureDir(outDir);
+
+  const id = "email_" + Date.now();
+  fs.writeFileSync(path.join(outDir, id + ".json"), JSON.stringify({
+    to,
+    subject,
+    body,
+    mailto,
+    createdAt: new Date().toISOString()
+  }, null, 2), "utf8");
+
+  res.json({
+    ok: true,
+    mode: "prepare_email",
+    to,
+    subject,
+    body,
+    mailto,
+    smtpConfigured: Boolean(process.env.SMTP_HOST && process.env.SMTP_USER),
+    note: "Email pregătit. Trimiterea SMTP reală se conectează prin SMTP_HOST/SMTP_USER sau provider extern."
+  });
+});
+
+app.post("/api/epd/signatures/certify", (req, res) => {
+  const role = String((req.body && req.body.role) || "proiectant");
+  const signer = String((req.body && req.body.signer) || "semnatar");
+  const documentTitle = String((req.body && req.body.documentTitle) || "document EPD");
+
+  const cert = {
+    ok: true,
+    certificateId: "EPD-CERT-" + Date.now(),
+    role,
+    signer,
+    documentTitle,
+    certifiedAt: new Date().toISOString(),
+    signatureType: "internal_epd_digital_attestation",
+    legalNote: "Aceasta este o certificare internă demonstrabilă. Pentru semnătură calificată legală este necesar certificat digital calificat/eIDAS.",
+    hashSource: role + "|" + signer + "|" + documentTitle + "|" + Date.now()
+  };
+
+  const outDir = path.join(__dirname, "storage", "certificates");
+  epdProdEnsureDir(outDir);
+  const file = path.join(outDir, cert.certificateId + ".json");
+  fs.writeFileSync(file, JSON.stringify(cert, null, 2), "utf8");
+
+  res.json(cert);
+});
+
+app.post("/api/epd/assistant/command", (req, res) => {
+  const text = String((req.body && (req.body.text || req.body.command)) || "").toLowerCase();
+
+  const actions = [];
+
+  if (text.includes("document")) actions.push("Deschide Generare documente și selectează template.");
+  if (text.includes("placeholder")) actions.push("Deschide Placeholders și verifică registrul pe pagini.");
+  if (text.includes("stamp") || text.includes("ștampil")) actions.push("Deschide Ștampile și mapează rolul: proiectant/VGD/RTE.");
+  if (text.includes("email")) actions.push("Deschide Email-uri și pregătește mesajul către beneficiar/OSD/VGD/RTE.");
+  if (text.includes("semn") || text.includes("certific")) actions.push("Deschide Semnături digitale și generează certificare internă.");
+  if (text.includes("plan") || text.includes("pret") || text.includes("preț")) actions.push("Deschide Planuri departamente și verifică alocarea funcțiilor/prețului.");
+  if (text.includes("audit") || text.includes("verific")) actions.push("Deschide Audit interfață și rulează diagnostic pagină cu pagină.");
+
+  res.json({
+    ok: true,
+    received: text,
+    actions: actions.length ? actions : ["Comandă primită. Recomandare: pornește din Audit interfață."],
+    workflow: [
+      "Login",
+      "Date proiect",
+      "Date tehnice",
+      "Generare documente",
+      "Ștampile",
+      "Email-uri",
+      "Semnături digitale",
+      "Verifică documentație",
+      "Planuri departamente",
+      "Audit interfață"
+    ]
+  });
+});
+
+app.get("/api/epd/production-audit", (req, res) => {
+  const checks = [
+    { page: "Login", expected: ["autentificare", "rol", "plan", "acces Developer"] },
+    { page: "Date proiect", expected: ["câmpuri beneficiar", "OSD", "contract", "placeholder-e", "IF complete"] },
+    { page: "Date tehnice", expected: ["debit", "presiune", "diametru", "calcule", "IF calculus"] },
+    { page: "Documentație", expected: ["template", "placeholder replace", "generate HTML/JSON", "export"] },
+    { page: "Ștampile", expected: ["proiectant", "VGD", "RTE", "mapare în documente"] },
+    { page: "Email-uri", expected: ["template email", "mailto", "SMTP-ready"] },
+    { page: "Semnături digitale", expected: ["certificare internă", "VGD", "RTE", "audit trail"] },
+    { page: "Asistent comenzi", expected: ["interpretare comandă", "direcționare workflow"] },
+    { page: "Planuri departamente", expected: ["preț", "funcții", "purchase intent", "alocare pe plan"] },
+    { page: "Verifică documentație", expected: ["diagnostic lipsuri", "raport", "workflow central"] }
+  ];
+
+  res.json({
+    ok: true,
+    mode: "production_listing_audit",
+    generatedAt: new Date().toISOString(),
+    site: "https://energy-project-design-services.onrender.com",
+    checks,
+    status: "Backend production routes active. Frontend addon must be loaded for interface buttons."
+  });
+});
+
+// === EPD PRODUCTION LISTING ROUTES END ===
+
+app.listen stabile.",
       "Nu rula restore din commit vechi.",
       "Nu rula full rebuild pentru completări de pagină.",
       "Aplică update-uri aditive pe Date proiect, Date tehnice, Ștampile, Email-uri și Verifică documentație.",
@@ -912,9 +1215,313 @@ app.post("/api/ai-developer/patch-plan", (req, res) => {
 
 // === EPD AUDIT VALIDATION AND RECONSTRUCTION ROUTES END ===
 
+
+// === EPD PRODUCTION LISTING ROUTES START ===
+
+function epdProdReadJson(filePath, fallback) {
+  try {
+    if (!fs.existsSync(filePath)) return fallback;
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch (err) {
+    return fallback;
+  }
+}
+
+function epdProdEnsureDir(dirPath) {
+  if (!fs.existsSync(dirPath)) fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function epdProdSlug(value) {
+  return String(value || "document")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "document";
+}
+
+function epdProdValuesFromBody(body) {
+  const values = Object.assign({}, body && body.values ? body.values : {}, body || {});
+  values.data_document = values.data_document || new Date().toISOString().slice(0, 10);
+  values.numar_document = values.numar_document || ("EPD-" + Date.now());
+  values.revizie = values.revizie || "0";
+
+  const stamps = values.stamps || {};
+  values.stampila_proiectant = values.stampila_proiectant || stamps.proiectant || "[Ștampilă proiectant neîncărcată]";
+  values.stampila_vgd = values.stampila_vgd || stamps.vgd || "[Ștampilă VGD neîncărcată]";
+  values.stampila_rte = values.stampila_rte || stamps.rte || "[Ștampilă RTE neîncărcată]";
+
+  values.semnatura_vgd = values.semnatura_vgd || "[Semnătură internă VGD necertificată]";
+  values.semnatura_rte = values.semnatura_rte || "[Semnătură internă RTE necertificată]";
+
+  return values;
+}
+
+function epdProdRenderTemplate(text, values) {
+  return String(text || "").replace(/<([a-zA-Z0-9_ăîâșțĂÎÂȘȚ]+)>/g, (match, key) => {
+    return values[key] !== undefined && values[key] !== null && values[key] !== "" ? String(values[key]) : match;
+  });
+}
+
+function epdProdHtmlEscape(value) {
+  return String(value || "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;"
+  }[c]));
+}
+
+function epdProdFeatureIncluded(plan, feature) {
+  const plansFile = path.join(__dirname, "data", "plans.json");
+  const data = epdProdReadJson(plansFile, { plans: [] });
+  const found = (data.plans || []).find(p => p.id === plan || p.name === plan);
+  if (!found) return false;
+  return Array.isArray(found.features) && (found.features.includes(feature) || found.features.includes("all_departments"));
+}
+
+app.get("/api/epd/plans", (req, res) => {
+  const plansFile = path.join(__dirname, "data", "plans.json");
+  const data = epdProdReadJson(plansFile, { plans: [] });
+  res.json({
+    ok: true,
+    site: "https://energy-project-design-services.onrender.com",
+    currency: data.currency || "EUR",
+    purchaseMode: data.purchaseMode || "purchase_intent_demo_ready",
+    plans: data.plans || [],
+    featureAllocationRules: data.featureAllocationRules || {}
+  });
+});
+
+app.post("/api/epd/plans/allocate", (req, res) => {
+  const planId = String((req.body && req.body.planId) || "");
+  const feature = String((req.body && req.body.feature) || "");
+  const allowed = epdProdFeatureIncluded(planId, feature);
+
+  res.json({
+    ok: true,
+    planId,
+    feature,
+    allowed,
+    note: allowed ? "Funcția este alocată planului." : "Funcția nu este alocată planului curent."
+  });
+});
+
+app.post("/api/epd/purchase-intent", (req, res) => {
+  const plansFile = path.join(__dirname, "data", "plans.json");
+  const data = epdProdReadJson(plansFile, { plans: [] });
+  const planId = String((req.body && req.body.planId) || "");
+  const plan = (data.plans || []).find(p => p.id === planId || p.name === planId);
+
+  if (!plan) {
+    return res.status(404).json({
+      ok: false,
+      error: "Plan inexistent.",
+      planId
+    });
+  }
+
+  const intent = {
+    id: "purchase_" + Date.now(),
+    status: "created_demo",
+    providerReady: "Stripe/Netopia/SmartBill connector-ready",
+    plan,
+    amount: plan.price,
+    currency: data.currency || "EUR",
+    createdAt: new Date().toISOString(),
+    nextStep: "Conectează providerul de plată și înlocuiește acest purchase intent demo cu checkout real."
+  };
+
+  res.json({
+    ok: true,
+    purchaseIntent: intent
+  });
+});
+
+app.get("/api/epd/document-templates", (req, res) => {
+  const file = path.join(__dirname, "data", "document-templates-production.json");
+  const data = epdProdReadJson(file, { templates: [] });
+  res.json({
+    ok: true,
+    templates: data.templates || []
+  });
+});
+
+app.post("/api/epd/documents/generate", (req, res) => {
+  const file = path.join(__dirname, "data", "document-templates-production.json");
+  const data = epdProdReadJson(file, { templates: [] });
+  const templateId = String((req.body && req.body.templateId) || "memoriu_tehnic");
+  const template = (data.templates || []).find(t => t.id === templateId) || (data.templates || [])[0];
+
+  if (!template) {
+    return res.status(404).json({
+      ok: false,
+      error: "Nu există template-uri de documente."
+    });
+  }
+
+  const values = epdProdValuesFromBody(req.body || {});
+  const renderedText = epdProdRenderTemplate(template.body, values);
+
+  const html = "<!doctype html><html lang=\"ro\"><head><meta charset=\"utf-8\"><title>" +
+    epdProdHtmlEscape(template.name) +
+    "</title><style>body{font-family:Arial,sans-serif;line-height:1.5;padding:40px;white-space:pre-wrap}.stamp{border:1px solid #333;display:inline-block;padding:8px;margin-top:12px}</style></head><body>" +
+    epdProdHtmlEscape(renderedText) +
+    "</body></html>";
+
+  const outDir = path.join(__dirname, "storage", "documents");
+  epdProdEnsureDir(outDir);
+
+  const base = epdProdSlug(template.name) + "_" + Date.now();
+  const htmlFile = path.join(outDir, base + ".html");
+  const jsonFile = path.join(outDir, base + ".json");
+
+  fs.writeFileSync(htmlFile, html, "utf8");
+  fs.writeFileSync(jsonFile, JSON.stringify({
+    ok: true,
+    template,
+    values,
+    renderedText,
+    generatedAt: new Date().toISOString()
+  }, null, 2), "utf8");
+
+  res.json({
+    ok: true,
+    templateId,
+    name: template.name,
+    renderedText,
+    files: {
+      html: "/downloads/../documents/" + base + ".html",
+      json: "/downloads/../documents/" + base + ".json"
+    },
+    note: "Document generat cu placeholder-e înlocuite și ștampile mapate textual."
+  });
+});
+
+app.post("/api/epd/email/prepare", (req, res) => {
+  const values = epdProdValuesFromBody(req.body || {});
+  const to = String((req.body && req.body.to) || values.email || "");
+  const subjectTemplate = String((req.body && req.body.subject) || "Documentație EPD - <beneficiar>");
+  const bodyTemplate = String((req.body && req.body.body) || "Bună ziua,\n\nVă transmitem documentația pentru <beneficiar>, lucrarea <tip_lucrare>, amplasată la <adresa_lucrare>.\n\nCu stimă,\n<proiectant>");
+
+  const subject = epdProdRenderTemplate(subjectTemplate, values);
+  const body = epdProdRenderTemplate(bodyTemplate, values);
+  const mailto = "mailto:" + encodeURIComponent(to) +
+    "?subject=" + encodeURIComponent(subject) +
+    "&body=" + encodeURIComponent(body);
+
+  const outDir = path.join(__dirname, "storage", "emails");
+  epdProdEnsureDir(outDir);
+
+  const id = "email_" + Date.now();
+  fs.writeFileSync(path.join(outDir, id + ".json"), JSON.stringify({
+    to,
+    subject,
+    body,
+    mailto,
+    createdAt: new Date().toISOString()
+  }, null, 2), "utf8");
+
+  res.json({
+    ok: true,
+    mode: "prepare_email",
+    to,
+    subject,
+    body,
+    mailto,
+    smtpConfigured: Boolean(process.env.SMTP_HOST && process.env.SMTP_USER),
+    note: "Email pregătit. Trimiterea SMTP reală se conectează prin SMTP_HOST/SMTP_USER sau provider extern."
+  });
+});
+
+app.post("/api/epd/signatures/certify", (req, res) => {
+  const role = String((req.body && req.body.role) || "proiectant");
+  const signer = String((req.body && req.body.signer) || "semnatar");
+  const documentTitle = String((req.body && req.body.documentTitle) || "document EPD");
+
+  const cert = {
+    ok: true,
+    certificateId: "EPD-CERT-" + Date.now(),
+    role,
+    signer,
+    documentTitle,
+    certifiedAt: new Date().toISOString(),
+    signatureType: "internal_epd_digital_attestation",
+    legalNote: "Aceasta este o certificare internă demonstrabilă. Pentru semnătură calificată legală este necesar certificat digital calificat/eIDAS.",
+    hashSource: role + "|" + signer + "|" + documentTitle + "|" + Date.now()
+  };
+
+  const outDir = path.join(__dirname, "storage", "certificates");
+  epdProdEnsureDir(outDir);
+  const file = path.join(outDir, cert.certificateId + ".json");
+  fs.writeFileSync(file, JSON.stringify(cert, null, 2), "utf8");
+
+  res.json(cert);
+});
+
+app.post("/api/epd/assistant/command", (req, res) => {
+  const text = String((req.body && (req.body.text || req.body.command)) || "").toLowerCase();
+
+  const actions = [];
+
+  if (text.includes("document")) actions.push("Deschide Generare documente și selectează template.");
+  if (text.includes("placeholder")) actions.push("Deschide Placeholders și verifică registrul pe pagini.");
+  if (text.includes("stamp") || text.includes("ștampil")) actions.push("Deschide Ștampile și mapează rolul: proiectant/VGD/RTE.");
+  if (text.includes("email")) actions.push("Deschide Email-uri și pregătește mesajul către beneficiar/OSD/VGD/RTE.");
+  if (text.includes("semn") || text.includes("certific")) actions.push("Deschide Semnături digitale și generează certificare internă.");
+  if (text.includes("plan") || text.includes("pret") || text.includes("preț")) actions.push("Deschide Planuri departamente și verifică alocarea funcțiilor/prețului.");
+  if (text.includes("audit") || text.includes("verific")) actions.push("Deschide Audit interfață și rulează diagnostic pagină cu pagină.");
+
+  res.json({
+    ok: true,
+    received: text,
+    actions: actions.length ? actions : ["Comandă primită. Recomandare: pornește din Audit interfață."],
+    workflow: [
+      "Login",
+      "Date proiect",
+      "Date tehnice",
+      "Generare documente",
+      "Ștampile",
+      "Email-uri",
+      "Semnături digitale",
+      "Verifică documentație",
+      "Planuri departamente",
+      "Audit interfață"
+    ]
+  });
+});
+
+app.get("/api/epd/production-audit", (req, res) => {
+  const checks = [
+    { page: "Login", expected: ["autentificare", "rol", "plan", "acces Developer"] },
+    { page: "Date proiect", expected: ["câmpuri beneficiar", "OSD", "contract", "placeholder-e", "IF complete"] },
+    { page: "Date tehnice", expected: ["debit", "presiune", "diametru", "calcule", "IF calculus"] },
+    { page: "Documentație", expected: ["template", "placeholder replace", "generate HTML/JSON", "export"] },
+    { page: "Ștampile", expected: ["proiectant", "VGD", "RTE", "mapare în documente"] },
+    { page: "Email-uri", expected: ["template email", "mailto", "SMTP-ready"] },
+    { page: "Semnături digitale", expected: ["certificare internă", "VGD", "RTE", "audit trail"] },
+    { page: "Asistent comenzi", expected: ["interpretare comandă", "direcționare workflow"] },
+    { page: "Planuri departamente", expected: ["preț", "funcții", "purchase intent", "alocare pe plan"] },
+    { page: "Verifică documentație", expected: ["diagnostic lipsuri", "raport", "workflow central"] }
+  ];
+
+  res.json({
+    ok: true,
+    mode: "production_listing_audit",
+    generatedAt: new Date().toISOString(),
+    site: "https://energy-project-design-services.onrender.com",
+    checks,
+    status: "Backend production routes active. Frontend addon must be loaded for interface buttons."
+  });
+});
+
+// === EPD PRODUCTION LISTING ROUTES END ===
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Energy Project Design ruleazÄ‚â€žĂ‚Â pe portul ${PORT}`);
 });
+
 
 
 

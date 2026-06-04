@@ -13,7 +13,13 @@
                   "NO FULL REBUILD fără cerere explicită.",
                   "Funcția permanentă audit validation and reconstruction + implement trebuie să fie aditivă, cu backup, raport și validare.",
                   "Workflow-ul principal este Date proiect, Date tehnice, Ștampile, Email-uri și Verifică documentație.",
-                  "Pagina Placeholders este disponibilă doar Developer / Inside."
+                  "Pagina Placeholders este disponibilă doar Developer / Inside.",
+                  "Documentele trebuie să poată fi generate cu placeholder-e înlocuite.",
+                  "Ștampilele trebuie să poată fi mapate în documente.",
+                  "Email-urile trebuie să poată fi pregătite și trimise prin client email / SMTP-ready.",
+                  "Semnăturile digitale au workflow intern și sunt pregătite pentru provider calificat.",
+                  "Planurile trebuie să permită alocarea funcțiilor și prețului pe departament.",
+                  "Purchasing trebuie să existe ca purchase intent până la conectarea providerului real de plată."
               ],
     "pages":  [
                   "Panou principal",
@@ -38,7 +44,13 @@
                   "Construire / Lansare",
                   "Placeholders",
                   "Verifică documentație",
-                  "Audit"
+                  "Audit",
+                  "Audit interfață",
+                  "Generare documente",
+                  "Semnături digitale",
+                  "Asistent comenzi",
+                  "Planuri departamente",
+                  "Purchasing"
               ],
     "deepValidationPatch":  {
                                 "generatedAt":  "2026-06-04T21:55:13",
