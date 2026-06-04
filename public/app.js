@@ -89,3 +89,52 @@ async function runUpdate(){if(!confirm("Rulez Run Update o singurÄ datÄ?")
 function pageLaunch(){content(`<div class="card"><h3>Construire / Lansare</h3><table class="table"><tr><td>Link public</td><td>${location.origin}</td></tr><tr><td>Repository</td><td>dragosserban95 / Energy-Project-Design</td></tr><tr><td>Profil activ</td><td>${industry} / ${workType}</td></tr></table><div class="actions"><button onclick="pageDiagnostic()">Diagnostic</button><button onclick="openPage('ActualizÄri')">Run Update</button></div></div>`)}
 function pageGeneric(p){content(`<div class="card"><h3>${esc(p)}</h3><p>PaginÄ pregÄtitÄ operaČ›ional. FuncČ›iile sunt mapate Ă®n registre Č™i vor fi extinse incremental.</p></div>`)}
 
+
+function epdApplyGoogleUserLogin() {
+  try {
+    const raw = localStorage.getItem("epd_google_user");
+    if (!raw) return;
+
+    const googleUser = JSON.parse(raw);
+    if (!googleUser || !googleUser.email) return;
+
+    USER = {
+      name: googleUser.name || googleUser.email,
+      email: googleUser.email,
+      role: googleUser.role || "User",
+      plan: googleUser.plan || "Free",
+      provider: "google",
+      picture: googleUser.picture || ""
+    };
+
+    if (typeof state === "object" && state) {
+      state.googleUser = USER;
+      state.account = state.account || {};
+      state.account.email = USER.email;
+      state.account.name = USER.name;
+      state.account.provider = "google";
+      state.account.lastLoginAt = new Date().toISOString();
+
+      state.plan = state.plan || {};
+      state.plan.plan = USER.plan || state.plan.plan || "Free";
+      state.plan.status = state.plan.status || "activ";
+
+      if (typeof saveState === "function") saveState();
+    }
+
+    const loginEl = document.getElementById("login");
+    const appEl = document.getElementById("app");
+
+    if (loginEl) loginEl.classList.add("hidden");
+    if (appEl) appEl.classList.remove("hidden");
+
+    if (typeof buildNav === "function") buildNav();
+    if (typeof openPage === "function") openPage("Panou principal");
+    if (typeof toast === "function") toast("Autentificat cu Google: " + USER.email);
+  } catch (err) {
+    console.error("Google user persistence error:", err);
+  }
+}
+
+setTimeout(epdApplyGoogleUserLogin, 100);
+
