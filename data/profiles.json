@@ -1,22 +1,17 @@
 ﻿{
-  "industries": [
-    "Gaze naturale",
-    "Energie electricÄ",
-    "ApÄ-canal",
-    "Telecom / fibrÄ opticÄ",
-    "Fotovoltaice",
-    "ConstrucČ›ii",
-    "InfrastructurÄ feroviarÄ"
-  ],
-  "workTypes": [
-    "BranČ™amente gaze naturale",
-    "Extindere de conductÄ gaze naturale",
-    "InstalaČ›ii de utilizare gaze naturale",
-    "ĂŽnlocuiri, reabilitÄri, modernizÄri conducte gaze naturale",
-    "Studii de fezabilitate gaze naturale"
-  ],
   "active": {
     "industry": "Gaze naturale",
-    "workType": "BranČ™amente gaze naturale"
-  }
+    "workType": "Branșamente gaze naturale"
+  },
+  "lockedProfiles": [
+    "Extindere de conductă gaze naturale",
+    "Instalații de utilizare gaze naturale",
+    "Energie electrică",
+    "Apă-canal",
+    "Telecom / fibră optică",
+    "Fotovoltaice",
+    "Construcții",
+    "Infrastructură feroviară"
+  ],
+  "site": "https://energy-project-design-services.onrender.com"
 }
