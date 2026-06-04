@@ -771,9 +771,151 @@ app.get("/api/downloads", (req, res) => {
 });
 
 
+
+// === EPD AUDIT VALIDATION AND RECONSTRUCTION ROUTES START ===
+
+function epdSafeReadJson(filePath, fallback) {
+  try {
+    if (!fs.existsSync(filePath)) return fallback;
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch (err) {
+    return fallback;
+  }
+}
+
+function epdDeveloperAccessInfo(req) {
+  return {
+    protected: true,
+    access: "Developer / Inside",
+    note: "Backend route pregătită pentru verificare Developer. Controlul real de cont poate fi conectat ulterior la sistemul de licențe."
+  };
+}
+
+app.get("/api/developer/placeholders", (req, res) => {
+  const file = path.join(__dirname, "data", "placeholders.json");
+  const data = epdSafeReadJson(file, { pages: {}, meta: {} });
+  res.json({
+    ok: true,
+    developerOnly: true,
+    accessInfo: epdDeveloperAccessInfo(req),
+    data
+  });
+});
+
+app.get("/api/developer/deep-scan", (req, res) => {
+  const placeholdersFile = path.join(__dirname, "data", "placeholders.json");
+  const promptFile = path.join(__dirname, "data", "prompt-master.json");
+
+  const placeholders = epdSafeReadJson(placeholdersFile, { pages: {}, meta: {} });
+  const promptMaster = epdSafeReadJson(promptFile, { pages: [] });
+
+  const requiredWorkflow = [
+    "Login",
+    "Date proiect",
+    "Date tehnice",
+    "Ștampile",
+    "Email-uri",
+    "Verifică documentație",
+    "Documentație",
+    "AI Developer",
+    "Audit"
+  ];
+
+  const placeholderPages = Object.keys(placeholders.pages || {});
+  const promptPages = Array.isArray(promptMaster.pages) ? promptMaster.pages : [];
+
+  const missingPlaceholderPages = requiredWorkflow.filter(p => !placeholderPages.includes(p));
+  const missingPromptPages = requiredWorkflow.filter(p => !promptPages.includes(p));
+
+  const report = {
+    ok: true,
+    mode: "audit validation and reconstruction + implement",
+    generatedAt: new Date().toISOString(),
+    site: "https://energy-project-design-services.onrender.com",
+    developerOnly: true,
+    requiredWorkflow,
+    placeholderPages,
+    promptPages,
+    missingPlaceholderPages,
+    missingPromptPages,
+    recommendations: [
+      "Păstrează Login, /api/health și app.listen stabile.",
+      "Nu rula restore din commit vechi.",
+      "Nu rula full rebuild pentru completări de pagină.",
+      "Aplică update-uri aditive pe Date proiect, Date tehnice, Ștampile, Email-uri și Verifică documentație.",
+      "AI Developer trebuie să genereze plan de patch înainte de modificare."
+    ]
+  };
+
+  res.json(report);
+});
+
+app.post("/api/ai-developer/patch-plan", (req, res) => {
+  const text = String((req.body && (req.body.text || req.body.prompt || req.body.command)) || "");
+  const lower = text.toLowerCase();
+
+  const targetPages = [];
+  if (lower.includes("date proiect")) targetPages.push("Date proiect");
+  if (lower.includes("date tehnice")) targetPages.push("Date tehnice");
+  if (lower.includes("stamp") || lower.includes("ștampil")) targetPages.push("Ștampile");
+  if (lower.includes("email")) targetPages.push("Email-uri");
+  if (lower.includes("verific")) targetPages.push("Verifică documentație");
+  if (lower.includes("placeholder")) targetPages.push("Placeholders");
+
+  const operations = [];
+
+  if (lower.includes("if") || lower.includes("calcul") || lower.includes("calculus")) {
+    operations.push({
+      type: "conditional_calculation",
+      meaning: "Adaugă/reglează funcții de tip IF/calcul condițional pe pagina țintă, fără rescriere totală.",
+      safeExamples: [
+        "if_debit_valid",
+        "if_lungime_ridicata",
+        "if_date_proiect_complete",
+        "if_date_tehnice_complete"
+      ]
+    });
+  }
+
+  if (lower.includes("placeholder")) {
+    operations.push({
+      type: "placeholder_registry_update",
+      meaning: "Adaugă placeholder în registrul Developer-only și îl leagă de pagina corespunzătoare."
+    });
+  }
+
+  if (lower.includes("audit") || lower.includes("validation") || lower.includes("reconstruction")) {
+    operations.push({
+      type: "audit_validation_reconstruction",
+      meaning: "Rulează audit, validează lipsuri, generează raport și propune patch aditiv."
+    });
+  }
+
+  res.json({
+    ok: true,
+    mode: "AI Developer patch plan",
+    received: text,
+    targetPages: targetPages.length ? targetPages : ["Nedetectat automat"],
+    operations: operations.length ? operations : [{
+      type: "analysis",
+      meaning: "Comanda trebuie analizată înainte de patch. Nu se aplică modificări fără plan."
+    }],
+    safetyRules: [
+      "NO RESTORE",
+      "NO FULL REBUILD",
+      "NO DELETE EXISTING FUNCTIONS",
+      "BACKUP BEFORE PATCH",
+      "VALIDATE server.js AND public/app.js"
+    ]
+  });
+});
+
+// === EPD AUDIT VALIDATION AND RECONSTRUCTION ROUTES END ===
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Energy Project Design ruleazÄ‚â€žĂ‚Â pe portul ${PORT}`);
 });
+
 
 
 
