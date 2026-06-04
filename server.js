@@ -426,6 +426,7 @@ app.get("/api/auth/google/status", (req, res) => {
     enabled: String(process.env.AUTH_GOOGLE_ENABLED || "").toLowerCase() === "true",
     clientIdConfigured: Boolean(process.env.GOOGLE_CLIENT_ID),
     clientSecretConfigured: Boolean(process.env.GOOGLE_CLIENT_SECRET),
+    googleApiKeyConfigured: Boolean(process.env.GOOGLE_API_KEY),
     callbackUrl: epdGoogleCallbackUrl()
   });
 });
