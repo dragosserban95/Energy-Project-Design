@@ -6,8 +6,8 @@ let currentPage = "Panou principal";
 let industry = "Gaze naturale";
 let workType = "Branșamente gaze naturale";
 
-const STORAGE_KEY = "epd_global_all_pages_state_v1";
-const CHAT_KEY = "epd_ai_developer_chat_v1";
+const STORAGE_KEY = "epd_global_rebuild_state_v2";
+const CHAT_KEY = "epd_ai_developer_chat_v2";
 
 const pages = [
   "Panou principal",
@@ -57,14 +57,6 @@ const calcFields = [
 const departments = [
   "Proiectare","Execuție","Avize","VGD","RTE","Ofertare","Contabilitate","Societate","Developer","Inside"
 ];
-
-const planDefinitions = {
-  Free:{export:false, pages:["Panou principal","Date proiect","Date tehnice","Checklist","Asistent utilizator"]},
-  Trial:{export:false, pages:["Panou principal","Date proiect","Date tehnice","Documentație","Checklist","Asistent utilizator"]},
-  Basic:{export:false, pages:["Panou principal","Date proiect","Date tehnice","Documentație","Ștampile","Email-uri","Checklist"]},
-  Developer:{export:true, pages:["*"]},
-  Inside:{export:true, pages:["*"]}
-};
 
 const documentTemplates = [
   {
@@ -200,13 +192,8 @@ function saveState(){
 }
 
 function esc(v){
-  return String(v ?? "").replace(/[&<>"']/g, c => ({
-    "&":"&amp;",
-    "<":"&lt;",
-    ">":"&gt;",
-    '"':"&quot;",
-    "'":"&#39;"
-  }[c] || c));
+  const map = {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"};
+  return String(v ?? "").replace(/[&<>"']/g, function(c){ return map[c] || c; });
 }
 
 function today(){
@@ -218,18 +205,19 @@ function toast(msg){
   if (!t) return alert(msg);
   t.textContent = msg;
   t.classList.remove("hidden");
-  setTimeout(() => t.classList.add("hidden"), 3000);
+  setTimeout(function(){ t.classList.add("hidden"); }, 3000);
 }
 
-async function api(url, opts = {}){
-  const r = await fetch(url, { headers:{"Content-Type":"application/json"}, ...opts });
+async function api(url, opts){
+  const options = opts || {};
+  const r = await fetch(url, { headers:{"Content-Type":"application/json"}, ...options });
   const txt = await r.text();
   try { return JSON.parse(txt); }
   catch { return { ok:r.ok, raw:txt }; }
 }
 
 function logAction(type, message){
-  state.logs.unshift({type, message, date:new Date().toISOString()});
+  state.logs.unshift({type:type, message:message, date:new Date().toISOString()});
   saveState();
 }
 
@@ -256,14 +244,14 @@ async function checkLoginHealth(){
   try {
     const h = await api("/api/health");
     const el = document.getElementById("loginStatus");
-    if (el) el.textContent = `Status: OpenAI=${h.openaiConfigured} GitHub=${h.githubUpdateConfigured} AutoApply=${h.autoApplyGithub}`;
+    if (el) el.textContent = "Status: OpenAI=" + h.openaiConfigured + " GitHub=" + h.githubUpdateConfigured + " AutoApply=" + h.autoApplyGithub;
   } catch {}
 }
 
 async function login(){
   const user = document.getElementById("user").value.trim();
   const password = document.getElementById("pass").value;
-  const res = await api("/api/login", {method:"POST", body:JSON.stringify({user,password})});
+  const res = await api("/api/login", {method:"POST", body:JSON.stringify({user:user,password:password})});
   if (!res.ok) return alert("Login incorect sau backend indisponibil.");
   USER = res.user || {name:user,role:"Developer",plan:"Developer"};
   if (String(USER.role || "").toLowerCase().includes("developer")) {
@@ -304,20 +292,13 @@ function applyGoogleUser(){
 function showRegister(){
   const el = document.getElementById("authBox");
   el.classList.remove("hidden");
-  el.innerHTML = `<h3>Cont nou</h3>
-  <p class="muted">Interfață pregătită pentru PostgreSQL + AUTH_REGISTER_ENABLED.</p>
-  <input placeholder="Email">
-  <input placeholder="Parolă" type="password">
-  <button onclick="toast('Register pregătit pentru backend.')">Creează cont</button>`;
+  el.innerHTML = '<h3>Cont nou</h3><p class="muted">Interfață pregătită pentru PostgreSQL + AUTH_REGISTER_ENABLED.</p><input placeholder="Email"><input placeholder="Parolă" type="password"><button onclick="toast(\'Register pregătit pentru backend.\')">Creează cont</button>';
 }
 
 function showForgot(){
   const el = document.getElementById("authBox");
   el.classList.remove("hidden");
-  el.innerHTML = `<h3>Recuperare parolă</h3>
-  <p class="muted">Interfață pregătită pentru SMTP + AUTH_FORGOT_ENABLED.</p>
-  <input placeholder="Email">
-  <button onclick="toast('Forgot password pregătit pentru SMTP.')">Trimite link resetare</button>`;
+  el.innerHTML = '<h3>Recuperare parolă</h3><p class="muted">Interfață pregătită pentru SMTP + AUTH_FORGOT_ENABLED.</p><input placeholder="Email"><button onclick="toast(\'Forgot password pregătit pentru SMTP.\')">Trimite link resetare</button>';
 }
 
 function googleLogin(){
@@ -328,8 +309,8 @@ function fillProfile(){
   const industries = ["Gaze naturale","Energie electrică","Apă-canal","Telecom / fibră optică","Fotovoltaice","Construcții","Infrastructură feroviară"];
   const works = ["Branșamente gaze naturale","Extindere de conductă gaze naturale","Instalații de utilizare gaze naturale","Modernizări conducte gaze naturale","Studii de fezabilitate gaze naturale"];
 
-  document.getElementById("industry").innerHTML = industries.map(x => `<option ${x===industry ? "selected" : ""}>${esc(x)}</option>`).join("");
-  document.getElementById("workType").innerHTML = works.map(x => `<option ${x===workType ? "selected" : ""}>${esc(x)}</option>`).join("");
+  document.getElementById("industry").innerHTML = industries.map(function(x){ return '<option ' + (x===industry ? "selected" : "") + '>' + esc(x) + '</option>'; }).join("");
+  document.getElementById("workType").innerHTML = works.map(function(x){ return '<option ' + (x===workType ? "selected" : "") + '>' + esc(x) + '</option>'; }).join("");
   refreshPills();
 }
 
@@ -351,19 +332,21 @@ function refreshPills(){
     s.classList.toggle("warn", !activeProfile());
   }
   if (p) {
-    p.textContent = `${state.plan.plan || "Free"} / export: ${canExport() ? "permis" : "blocat"}`;
+    p.textContent = (state.plan.plan || "Free") + " / export: " + (canExport() ? "permis" : "blocat");
     p.classList.toggle("warn", !canExport());
   }
 }
 
 function buildNav(){
-  document.getElementById("nav").innerHTML = pages.map(p => `<button class="nav" onclick="openPage('${p.replace(/'/g,"\\'")}')">${esc(p)}</button>`).join("");
+  document.getElementById("nav").innerHTML = pages.map(function(p){
+    return '<button class="nav" onclick="openPage(\'' + p.replace(/'/g,"\\'") + '\')">' + esc(p) + '</button>';
+  }).join("");
 }
 
 function setTitle(t, sub){
   document.getElementById("pageTitle").textContent = t;
   document.getElementById("pageSub").textContent = sub || (activeProfile() ? "Profil activ" : "Profil vizibil, blocat până la configurare");
-  document.querySelectorAll(".nav").forEach(b => b.classList.toggle("active", b.textContent === t));
+  document.querySelectorAll(".nav").forEach(function(b){ b.classList.toggle("active", b.textContent === t); });
 }
 
 function content(html){
@@ -402,30 +385,35 @@ function openPage(p){
     "Loguri / Integritate": logsPage
   };
 
-  (map[p] || genericPage)();
+  if (map[p]) map[p]();
+  else genericPage();
 }
 
 function label(k){
-  return k.replaceAll("_"," ").replace(/\b\w/g, c => c.toUpperCase());
+  return k.replaceAll("_"," ").replace(/\b\w/g, function(c){ return c.toUpperCase(); });
 }
 
 function inputFor(group,k){
   const value = state[group][k] || "";
   if (k.includes("observatii") || k === "traseu") {
-    return `<textarea onchange="setField('${group}','${k}',this.value)">${esc(value)}</textarea>`;
+    return '<textarea onchange="setField(\'' + group + '\',\'' + k + '\',this.value)">' + esc(value) + '</textarea>';
   }
   if (k.includes("data")) {
-    return `<input type="date" value="${esc(value)}" onchange="setField('${group}','${k}',this.value)">`;
+    return '<input type="date" value="' + esc(value) + '" onchange="setField(\'' + group + '\',\'' + k + '\',this.value)">';
   }
   if (k.includes("status")) {
     const opts = ["neverificat","în lucru","admis","respins","activ","expirat"];
-    return `<select onchange="setField('${group}','${k}',this.value)">${opts.map(x => `<option ${x===value ? "selected" : ""}>${esc(x)}</option>`).join("")}</select>`;
+    return '<select onchange="setField(\'' + group + '\',\'' + k + '\',this.value)">' + opts.map(function(x){
+      return '<option ' + (x===value ? "selected" : "") + '>' + esc(x) + '</option>';
+    }).join("") + '</select>';
   }
-  return `<input value="${esc(value)}" onchange="setField('${group}','${k}',this.value)">`;
+  return '<input value="' + esc(value) + '" onchange="setField(\'' + group + '\',\'' + k + '\',this.value)">';
 }
 
 function form(group, fields){
-  return `<div class="grid">${fields.map(k => `<label>${label(k)}${inputFor(group,k)}</label>`).join("")}</div>`;
+  return '<div class="grid">' + fields.map(function(k){
+    return '<label>' + label(k) + inputFor(group,k) + '</label>';
+  }).join("") + '</div>';
 }
 
 function setField(group,k,v){
@@ -434,14 +422,14 @@ function setField(group,k,v){
 }
 
 function chips(fields){
-  return fields.map(x => `<span class="placeholder">&lt;${esc(x)}&gt;</span>`).join("");
+  return fields.map(function(x){ return '<span class="placeholder">&lt;' + esc(x) + '&gt;</span>'; }).join("");
 }
 
 function allValues(){
-  const stampFor = role => {
-    const s = state.stamps.find(x => x.role === role);
-    return s ? `[Ștampilă ${role}: ${s.name}]` : `[Ștampilă ${role} lipsă]`;
-  };
+  function stampFor(role){
+    const s = state.stamps.find(function(x){ return x.role === role; });
+    return s ? "[Ștampilă " + role + ": " + s.name + "]" : "[Ștampilă " + role + " lipsă]";
+  }
   return {
     ...state.project,
     ...state.technical,
@@ -459,35 +447,29 @@ function allValues(){
 
 function renderTemplate(text){
   const v = allValues();
-  return String(text || "").replace(/<([a-zA-Z0-9_ăîâșțĂÎÂȘȚ]+)>/g, (m,k) => v[k] || m);
+  return String(text || "").replace(/<([a-zA-Z0-9_ăîâșțĂÎÂȘȚ]+)>/g, function(m,k){ return v[k] || m; });
 }
 
 function completion(){
   const required = ["beneficiar","adresa_lucrare","localitate","judet","osd","proiectant","debit_instalat","presiune_regim","diametru_conducta"];
-  const ok = required.filter(k => state.project[k] || state.technical[k]).length;
+  const ok = required.filter(function(k){ return state.project[k] || state.technical[k]; }).length;
   return Math.round(ok / required.length * 100);
 }
 
 function dashboardPage(){
-  content(`<div class="grid3">
-    <div class="card"><h3>Profil</h3><b>${esc(industry)} / ${esc(workType)}</b><p>${activeProfile() ? "Activ" : "Blocat contextual"}</p></div>
-    <div class="card"><h3>Plan</h3><b>${esc(state.plan.plan)}</b><p>Export: ${canExport() ? "permis" : "blocat"}</p></div>
-    <div class="card"><h3>Completare</h3><b>${completion()}%</b><p>Grad completare proiect.</p></div>
-  </div>
-  <div class="card"><h3>Flux principal</h3>
-  <p>Date proiect → Date tehnice → Calcul → Documentație → Ștampile → Verificări VGD/RTE → Email-uri → Export.</p>
-  <div class="row">
-    <button onclick="openPage('Date proiect')">Date proiect</button>
-    <button onclick="openPage('Date tehnice')">Date tehnice</button>
-    <button onclick="openPage('Documentație')">Documentație</button>
-    <button onclick="openPage('Verificări')">VGD/RTE</button>
-  </div></div>`);
+  content('<div class="grid3">' +
+    '<div class="card"><h3>Profil</h3><b>' + esc(industry) + ' / ' + esc(workType) + '</b><p>' + (activeProfile() ? "Activ" : "Blocat contextual") + '</p></div>' +
+    '<div class="card"><h3>Plan</h3><b>' + esc(state.plan.plan) + '</b><p>Export: ' + (canExport() ? "permis" : "blocat") + '</p></div>' +
+    '<div class="card"><h3>Completare</h3><b>' + completion() + '%</b><p>Grad completare proiect.</p></div>' +
+  '</div>' +
+  '<div class="card"><h3>Flux principal</h3><p>Date proiect → Date tehnice → Calcul → Documentație → Ștampile → Verificări VGD/RTE → Email-uri → Export.</p>' +
+  '<div class="row"><button onclick="openPage(\'Date proiect\')">Date proiect</button><button onclick="openPage(\'Date tehnice\')">Date tehnice</button><button onclick="openPage(\'Documentație\')">Documentație</button><button onclick="openPage(\'Verificări\')">VGD/RTE</button></div></div>');
 }
 
 function projectPage(){
-  content(`<div class="card"><h3>Date proiect</h3>${form("project",projectFields)}
-  <div class="row"><button class="primary" onclick="saveProject()">Salvează proiect</button><button onclick="openPage('Date tehnice')">Continuă</button></div></div>
-  <div class="card"><h3>Placeholder-e proiect</h3>${chips(projectFields)}</div>`);
+  content('<div class="card"><h3>Date proiect</h3>' + form("project",projectFields) +
+  '<div class="row"><button class="primary" onclick="saveProject()">Salvează proiect</button><button onclick="openPage(\'Date tehnice\')">Continuă</button></div></div>' +
+  '<div class="card"><h3>Placeholder-e proiect</h3>' + chips(projectFields) + '</div>');
 }
 
 function saveProject(){
@@ -498,39 +480,31 @@ function saveProject(){
 }
 
 function technicalPage(){
-  content(`<div class="card"><h3>Date tehnice</h3>${form("technical",technicalFields)}
-  <div class="row"><button class="primary" onclick="saveState();toast('Date tehnice salvate')">Salvează</button><button onclick="openPage('Calcul')">Calculează</button></div></div>
-  <div class="card"><h3>Placeholder-e tehnice</h3>${chips(technicalFields)}</div>`);
+  content('<div class="card"><h3>Date tehnice</h3>' + form("technical",technicalFields) +
+  '<div class="row"><button class="primary" onclick="saveState();toast(\'Date tehnice salvate\')">Salvează</button><button onclick="openPage(\'Calcul\')">Calculează</button></div></div>' +
+  '<div class="card"><h3>Placeholder-e tehnice</h3>' + chips(technicalFields) + '</div>');
 }
 
 function departmentsPage(){
-  content(`<div class="grid3">${departments.map(d => `<div class="card"><h3>${esc(d)}</h3><p>Flux pregătit pentru rolul ${esc(d)}.</p><button onclick="toast('Departament selectat: ${esc(d)}')">Selectează</button></div>`).join("")}</div>`);
+  content('<div class="grid3">' + departments.map(function(d){
+    return '<div class="card"><h3>' + esc(d) + '</h3><p>Flux pregătit pentru rolul ' + esc(d) + '.</p><button onclick="toast(\'Departament selectat\')">Selectează</button></div>';
+  }).join("") + '</div>');
 }
 
 function documentsPage(){
-  const opts = documentTemplates.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join("");
-  content(`<div class="card"><h3>Motor documente</h3>
-    <div class="grid">
-      <label>Tip document<select id="docTpl" onchange="loadDocTemplate()">${opts}</select></label>
-      <label>Titlu document<input id="docTitle"></label>
-    </div>
-    <label>Editor document<textarea id="docEditor"></textarea></label>
-    <div class="row">
-      <button onclick="loadDocTemplate()">Încarcă șablon</button>
-      <button class="primary" onclick="previewDoc()">Previzualizare</button>
-      <button onclick="saveDoc()">Salvează document</button>
-      <button onclick="exportProject()">Export</button>
-    </div>
-  </div>
-  <div class="card"><h3>Previzualizare</h3><pre id="docPreview"></pre></div>
-  <div class="card"><h3>Documente salvate</h3>${documentsTable()}</div>`);
+  const opts = documentTemplates.map(function(t){ return '<option value="' + esc(t.id) + '">' + esc(t.name) + '</option>'; }).join("");
+  content('<div class="card"><h3>Motor documente</h3>' +
+    '<div class="grid"><label>Tip document<select id="docTpl" onchange="loadDocTemplate()">' + opts + '</select></label><label>Titlu document<input id="docTitle"></label></div>' +
+    '<label>Editor document<textarea id="docEditor"></textarea></label>' +
+    '<div class="row"><button onclick="loadDocTemplate()">Încarcă șablon</button><button class="primary" onclick="previewDoc()">Previzualizare</button><button onclick="saveDoc()">Salvează document</button><button onclick="exportProject()">Export</button></div>' +
+  '</div><div class="card"><h3>Previzualizare</h3><pre id="docPreview"></pre></div><div class="card"><h3>Documente salvate</h3>' + documentsTable() + '</div>');
   loadDocTemplate();
 }
 
 function loadDocTemplate(){
   const el = document.getElementById("docTpl");
   if (!el) return;
-  const t = documentTemplates.find(x => x.id === el.value) || documentTemplates[0];
+  const t = documentTemplates.find(function(x){ return x.id === el.value; }) || documentTemplates[0];
   document.getElementById("docTitle").value = t.name;
   document.getElementById("docEditor").value = t.body;
 }
@@ -554,59 +528,54 @@ function saveDoc(){
 }
 
 function documentsTable(){
-  if (!state.documents.length) return `<p class="muted">Nu există documente salvate.</p>`;
-  return `<table class="table"><tr><th>Titlu</th><th>Data</th></tr>${state.documents.map(d => `<tr><td>${esc(d.title)}</td><td>${esc(d.date)}</td></tr>`).join("")}</table>`;
+  if (!state.documents.length) return '<p class="muted">Nu există documente salvate.</p>';
+  return '<table class="table"><tr><th>Titlu</th><th>Data</th></tr>' + state.documents.map(function(d){
+    return '<tr><td>' + esc(d.title) + '</td><td>' + esc(d.date) + '</td></tr>';
+  }).join("") + '</table>';
 }
 
 function stampsPage(){
-  content(`<div class="card"><h3>Ștampile</h3>
-    <div class="grid3">
-      ${["proiectant","vgd","rte"].map(r => `<div class="card"><h3>${r.toUpperCase()}</h3><input type="file" id="stamp_${r}"><button onclick="addStamp('${r}')">Încarcă / mapează</button></div>`).join("")}
-    </div>
-  </div>
-  <div class="card"><h3>Ștampile mapate</h3>${stampsTable()}</div>`);
+  content('<div class="card"><h3>Ștampile</h3><div class="grid3">' +
+    ["proiectant","vgd","rte"].map(function(r){
+      return '<div class="card"><h3>' + r.toUpperCase() + '</h3><input type="file" id="stamp_' + r + '"><button onclick="addStamp(\'' + r + '\')">Încarcă / mapează</button></div>';
+    }).join("") +
+  '</div></div><div class="card"><h3>Ștampile mapate</h3>' + stampsTable() + '</div>');
 }
 
 function addStamp(role){
   const f = document.getElementById("stamp_"+role).files[0];
-  state.stamps = state.stamps.filter(x => x.role !== role);
-  state.stamps.push({role, name:f ? f.name : "ștampilă "+role, date:today()});
+  state.stamps = state.stamps.filter(function(x){ return x.role !== role; });
+  state.stamps.push({role:role, name:f ? f.name : "ștampilă "+role, date:today()});
   logAction("stampila","Ștampilă mapată pentru "+role);
   saveState();
   stampsPage();
 }
 
 function stampsTable(){
-  if (!state.stamps.length) return `<p class="muted">Nu există ștampile mapate.</p>`;
-  return `<table class="table"><tr><th>Rol</th><th>Nume</th><th>Placeholder</th></tr>${state.stamps.map(s => `<tr><td>${esc(s.role)}</td><td>${esc(s.name)}</td><td>&lt;stampila_${esc(s.role)}&gt;</td></tr>`).join("")}</table>`;
+  if (!state.stamps.length) return '<p class="muted">Nu există ștampile mapate.</p>';
+  return '<table class="table"><tr><th>Rol</th><th>Nume</th><th>Placeholder</th></tr>' + state.stamps.map(function(s){
+    return '<tr><td>' + esc(s.role) + '</td><td>' + esc(s.name) + '</td><td>&lt;stampila_' + esc(s.role) + '&gt;</td></tr>';
+  }).join("") + '</table>';
 }
 
 function emailsPage(){
-  const opts = emailTemplates.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join("");
-  content(`<div class="card"><h3>Email-uri</h3>
-    <div class="grid">
-      <label>Template<select id="emailTpl" onchange="loadEmailTemplate()">${opts}</select></label>
-      <label>Destinatar<input id="emailTo" value="${esc(state.project.email)}"></label>
-    </div>
-    <label>Subiect<input id="emailSubject"></label>
-    <label>Conținut<textarea id="emailBody"></textarea></label>
-    <div class="row">
-      <button onclick="loadEmailTemplate()">Încarcă template</button>
-      <button class="primary" onclick="prepareEmail()">Pregătește email</button>
-    </div>
-  </div>
-  <div class="card"><h3>Previzualizare</h3><pre id="emailPreview"></pre></div>`);
+  const opts = emailTemplates.map(function(t){ return '<option value="' + esc(t.id) + '">' + esc(t.name) + '</option>'; }).join("");
+  content('<div class="card"><h3>Email-uri</h3>' +
+    '<div class="grid"><label>Template<select id="emailTpl" onchange="loadEmailTemplate()">' + opts + '</select></label><label>Destinatar<input id="emailTo" value="' + esc(state.project.email) + '"></label></div>' +
+    '<label>Subiect<input id="emailSubject"></label><label>Conținut<textarea id="emailBody"></textarea></label>' +
+    '<div class="row"><button onclick="loadEmailTemplate()">Încarcă template</button><button class="primary" onclick="prepareEmail()">Pregătește email</button></div>' +
+  '</div><div class="card"><h3>Previzualizare</h3><pre id="emailPreview"></pre></div>');
   loadEmailTemplate();
 }
 
 function loadEmailTemplate(){
-  const t = emailTemplates.find(x => x.id === document.getElementById("emailTpl").value) || emailTemplates[0];
+  const t = emailTemplates.find(function(x){ return x.id === document.getElementById("emailTpl").value; }) || emailTemplates[0];
   document.getElementById("emailSubject").value = renderTemplate(t.subject);
   document.getElementById("emailBody").value = renderTemplate(t.body);
 }
 
 function prepareEmail(){
-  const out = `Către: ${document.getElementById("emailTo").value}\nSubiect: ${document.getElementById("emailSubject").value}\n\n${document.getElementById("emailBody").value}`;
+  const out = "Către: " + document.getElementById("emailTo").value + "\nSubiect: " + document.getElementById("emailSubject").value + "\n\n" + document.getElementById("emailBody").value;
   document.getElementById("emailPreview").textContent = out;
   state.emails.unshift({id:Date.now(), to:document.getElementById("emailTo").value, subject:document.getElementById("emailSubject").value, date:today()});
   logAction("email","Email pregătit");
@@ -614,11 +583,10 @@ function prepareEmail(){
 }
 
 function verificationPage(){
-  content(`<div class="grid">
-    <div class="card"><h3>Verificare VGD</h3>${form("vgd",vgdFields)}<div class="row"><button onclick="authorizeRole('vgd')">Autorizează VGD</button><button onclick="generateRoleDoc('vgd')">Generează document VGD</button></div></div>
-    <div class="card"><h3>Verificare RTE</h3>${form("rte",rteFields)}<div class="row"><button onclick="authorizeRole('rte')">Autorizează RTE</button><button onclick="generateRoleDoc('rte')">Generează document RTE</button></div></div>
-  </div>
-  <div class="card"><h3>Validare proiect</h3>${validationReport()}</div>`);
+  content('<div class="grid">' +
+    '<div class="card"><h3>Verificare VGD</h3>' + form("vgd",vgdFields) + '<div class="row"><button onclick="authorizeRole(\'vgd\')">Autorizează VGD</button><button onclick="generateRoleDoc(\'vgd\')">Generează document VGD</button></div></div>' +
+    '<div class="card"><h3>Verificare RTE</h3>' + form("rte",rteFields) + '<div class="row"><button onclick="authorizeRole(\'rte\')">Autorizează RTE</button><button onclick="generateRoleDoc(\'rte\')">Generează document RTE</button></div></div>' +
+  '</div><div class="card"><h3>Validare proiect</h3>' + validationReport() + '</div>');
 }
 
 function authorizeRole(role){
@@ -629,7 +597,7 @@ function authorizeRole(role){
 }
 
 function generateRoleDoc(role){
-  const t = documentTemplates.find(x => x.id === role);
+  const t = documentTemplates.find(function(x){ return x.id === role; });
   state.documents.unshift({id:Date.now(), title:t.name, body:renderTemplate(t.body), date:today()});
   logAction("document","Document "+role.toUpperCase()+" generat");
   saveState();
@@ -638,10 +606,10 @@ function generateRoleDoc(role){
 
 function validationReport(){
   const missing = [];
-  ["beneficiar","adresa_lucrare","localitate","judet","osd","proiectant"].forEach(k => { if (!state.project[k]) missing.push(k); });
-  ["debit_instalat","presiune_regim","diametru_conducta"].forEach(k => { if (!state.technical[k]) missing.push(k); });
-  if (missing.length) return `<p class="bad">Lipsesc date obligatorii:</p>${chips(missing)}`;
-  return `<p class="ok">Nu există erori critice în datele principale.</p>`;
+  ["beneficiar","adresa_lucrare","localitate","judet","osd","proiectant"].forEach(function(k){ if (!state.project[k]) missing.push(k); });
+  ["debit_instalat","presiune_regim","diametru_conducta"].forEach(function(k){ if (!state.technical[k]) missing.push(k); });
+  if (missing.length) return '<p class="bad">Lipsesc date obligatorii:</p>' + chips(missing);
+  return '<p class="ok">Nu există erori critice în datele principale.</p>';
 }
 
 function checklistPage(){
@@ -656,22 +624,20 @@ function checklistPage(){
     ["Email", state.emails.length > 0],
     ["Export", canExport()]
   ];
-  content(`<div class="card"><h3>Checklist proiect</h3><table class="table"><tr><th>Element</th><th>Status</th></tr>${rows.map(r => `<tr><td>${esc(r[0])}</td><td class="${r[1] ? "ok" : "bad"}">${r[1] ? "Complet" : "Lipsă / blocat"}</td></tr>`).join("")}</table></div>`);
+  content('<div class="card"><h3>Checklist proiect</h3><table class="table"><tr><th>Element</th><th>Status</th></tr>' + rows.map(function(r){
+    return '<tr><td>' + esc(r[0]) + '</td><td class="' + (r[1] ? "ok" : "bad") + '">' + (r[1] ? "Complet" : "Lipsă / blocat") + '</td></tr>';
+  }).join("") + '</table></div>');
 }
 
 function osdPage(){
-  content(`<div class="card"><h3>Șabloane OSD</h3>
-  <p>Bibliotecă OSD pentru branșamente gaze naturale.</p>
-  <div class="grid">
-    <label>Operator<select onchange="state.project.osd=this.value;saveState()"><option>Distrigaz Sud Rețele</option><option>Delgaz Grid</option><option>Premier Energy</option><option>Alt OSD</option></select></label>
-    <label>Tip document<select><option>Cerere</option><option>Memoriu</option><option>Fișă tehnică</option><option>Adresă OSD</option></select></label>
-  </div>
-  <div class="row"><button onclick="toast('Șablon OSD pregătit.')">Adaugă șablon</button><button onclick="openPage('Documentație')">Generează documente</button></div></div>`);
+  content('<div class="card"><h3>Șabloane OSD</h3><p>Bibliotecă OSD pentru branșamente gaze naturale.</p>' +
+  '<div class="grid"><label>Operator<select onchange="state.project.osd=this.value;saveState()"><option>Distrigaz Sud Rețele</option><option>Delgaz Grid</option><option>Premier Energy</option><option>Alt OSD</option></select></label><label>Tip document<select><option>Cerere</option><option>Memoriu</option><option>Fișă tehnică</option><option>Adresă OSD</option></select></label></div>' +
+  '<div class="row"><button onclick="toast(\'Șablon OSD pregătit.\')">Adaugă șablon</button><button onclick="openPage(\'Documentație\')">Generează documente</button></div></div>');
 }
 
 function calcPage(){
-  content(`<div class="card"><h3>Calcul tehnic</h3>${form("calcul",calcFields)}
-  <div class="row"><button class="primary" onclick="runCalc()">Calculează automat</button><button onclick="openPage('Documentație')">Trimite către documente</button></div></div>`);
+  content('<div class="card"><h3>Calcul tehnic</h3>' + form("calcul",calcFields) +
+  '<div class="row"><button class="primary" onclick="runCalc()">Calculează automat</button><button onclick="openPage(\'Documentație\')">Trimite către documente</button></div></div>');
 }
 
 function runCalc(){
@@ -682,8 +648,8 @@ function runCalc(){
   state.calcul.debit_calculat_mc_h = debit ? debit.toFixed(2) : "";
   state.calcul.debit_recomandat_mc_h = debit ? (debit * 1.1).toFixed(2) : "";
   state.calcul.risc_presiune = lungime > 30 ? "verificare necesară" : "normal";
-  state.calcul.estimare_materiale = lungime ? `Țeavă/materiale pentru aproximativ ${lungime} m` : "";
-  state.calcul.estimare_cost = lungime ? `${(lungime * 120).toFixed(0)} RON estimativ` : "";
+  state.calcul.estimare_materiale = lungime ? "Țeavă/materiale pentru aproximativ " + lungime + " m" : "";
+  state.calcul.estimare_cost = lungime ? (lungime * 120).toFixed(0) + " RON estimativ" : "";
   state.calcul.rezultat_calcul = "Calcul orientativ generat.";
   logAction("calcul","Calcul tehnic generat");
   saveState();
@@ -691,14 +657,13 @@ function runCalc(){
 }
 
 function registryPage(){
-  content(`<div class="card"><h3>Registru proiecte</h3>${state.projects.length ? `<table class="table"><tr><th>Proiect</th><th>Data</th><th>Status</th></tr>${state.projects.map(p => `<tr><td>${esc(p.name)}</td><td>${esc(p.date)}</td><td>${esc(p.status)}</td></tr>`).join("")}</table>` : `<p class="muted">Nu există proiecte salvate.</p>`}</div>`);
+  content('<div class="card"><h3>Registru proiecte</h3>' + (state.projects.length ? '<table class="table"><tr><th>Proiect</th><th>Data</th><th>Status</th></tr>' + state.projects.map(function(p){
+    return '<tr><td>' + esc(p.name) + '</td><td>' + esc(p.date) + '</td><td>' + esc(p.status) + '</td></tr>';
+  }).join("") + '</table>' : '<p class="muted">Nu există proiecte salvate.</p>') + '</div>');
 }
 
 function importExportPage(){
-  content(`<div class="card"><h3>Import / Export</h3>
-  <textarea id="importBox" placeholder="Lipește JSON proiect"></textarea>
-  <div class="row"><button onclick="importProject()">Import JSON</button><button class="primary" onclick="exportProject()">Export proiect</button></div>
-  <p class="${canExport() ? "ok" : "bad"}">Export: ${canExport() ? "permis" : "blocat pentru planul curent"}</p></div>`);
+  content('<div class="card"><h3>Import / Export</h3><textarea id="importBox" placeholder="Lipește JSON proiect"></textarea><div class="row"><button onclick="importProject()">Import JSON</button><button class="primary" onclick="exportProject()">Export proiect</button></div><p class="' + (canExport() ? "ok" : "bad") + '">Export: ' + (canExport() ? "permis" : "blocat pentru planul curent") + '</p></div>');
 }
 
 function importProject(){
@@ -724,14 +689,17 @@ function exportProject(){
 }
 
 function plansPage(){
-  const rows = Object.keys(planDefinitions).map(p => `<tr><td>${p}</td><td>${planDefinitions[p].export ? "Da" : "Nu"}</td><td><button onclick="setPlan('${p}')">Setează</button></td></tr>`).join("");
-  content(`<div class="card"><h3>Planuri și licențe</h3><table class="table"><tr><th>Plan</th><th>Export</th><th>Acțiune</th></tr>${rows}</table><pre>${esc(JSON.stringify(state.plan,null,2))}</pre></div>`);
+  const plans = ["Free","Trial","Basic","Developer","Inside"];
+  const rows = plans.map(function(p){
+    return '<tr><td>' + p + '</td><td>' + (state.planRules[p] ? "Da" : "Nu") + '</td><td><button onclick="setPlan(\'' + p + '\')">Setează</button></td></tr>';
+  }).join("");
+  content('<div class="card"><h3>Planuri și licențe</h3><table class="table"><tr><th>Plan</th><th>Export</th><th>Acțiune</th></tr>' + rows + '</table><pre>' + esc(JSON.stringify(state.plan,null,2)) + '</pre></div>');
 }
 
 function setPlan(p){
   state.plan.plan = p;
   state.plan.status = "activ";
-  state.plan.exportAllowed = Boolean(planDefinitions[p] && planDefinitions[p].export);
+  state.plan.exportAllowed = Boolean(state.planRules[p]);
   logAction("plan","Plan setat: "+p);
   saveState();
   plansPage();
@@ -740,20 +708,19 @@ function setPlan(p){
 
 function marketplacePage(){
   const mods = ["OSD Templates Pro","VGD/RTE Pro","Import OCR","Planuri/Scheme","Marketplace șabloane","Document Engine Pro","Email Engine","Calcul avansat"];
-  content(`<div class="grid3">${mods.map(m => `<div class="card locked"><h3>${esc(m)}</h3><p>Modul pregătit pentru activare Developer/Service.</p><button onclick="toast('Modul pregătit: ${esc(m)}')">Detalii</button></div>`).join("")}</div>`);
+  content('<div class="grid3">' + mods.map(function(m){
+    return '<div class="card locked"><h3>' + esc(m) + '</h3><p>Modul pregătit pentru activare Developer/Service.</p><button onclick="toast(\'Modul pregătit\')">Detalii</button></div>';
+  }).join("") + '</div>');
 }
 
 function userAssistantPage(){
-  content(`<div class="card"><h3>Asistent utilizator</h3>
-  <div id="userChat" class="chat"><div class="msg ai">Întreabă despre documente, câmpuri, VGD/RTE, ștampile, emailuri sau export.</div></div>
-  <textarea id="userAsk" placeholder="Întrebarea ta..."></textarea>
-  <button class="primary" onclick="askUserAssistant()">Întreabă</button></div>`);
+  content('<div class="card"><h3>Asistent utilizator</h3><div id="userChat" class="chat"><div class="msg ai">Întreabă despre documente, câmpuri, VGD/RTE, ștampile, emailuri sau export.</div></div><textarea id="userAsk" placeholder="Întrebarea ta..."></textarea><button class="primary" onclick="askUserAssistant()">Întreabă</button></div>');
 }
 
 function askUserAssistant(){
   const q = document.getElementById("userAsk").value;
   const a = localHelp(q);
-  document.getElementById("userChat").innerHTML += `<div class="msg user">${esc(q)}</div><div class="msg ai">${esc(a)}</div>`;
+  document.getElementById("userChat").innerHTML += '<div class="msg user">' + esc(q) + '</div><div class="msg ai">' + esc(a) + '</div>';
 }
 
 function localHelp(q){
@@ -768,16 +735,14 @@ function localHelp(q){
 
 function aiDeveloperPage(){
   const hist = JSON.parse(localStorage.getItem(CHAT_KEY) || "[]");
-  content(`<div class="card"><h3>AI Developer — Chat</h3>
-  <div id="devChat" class="chat">${hist.map(m => `<div class="msg ${m.role}">${esc(m.text)}</div>`).join("") || `<div class="msg ai">Scrie comanda pentru update.</div>`}</div>
-  <textarea id="devPrompt" placeholder="Comandă update..."></textarea>
-  <div class="row"><button class="primary" onclick="devSend()">Trimite</button><button onclick="devAnalyze()">Analiză</button><button onclick="devRunUpdate()">Run Update</button></div></div>
-  <div class="card"><h3>Raport AI Developer</h3><pre id="devReport"></pre></div>`);
+  content('<div class="card"><h3>AI Developer — Chat</h3><div id="devChat" class="chat">' + (hist.map(function(m){
+    return '<div class="msg ' + esc(m.role) + '">' + esc(m.text) + '</div>';
+  }).join("") || '<div class="msg ai">Scrie comanda pentru update.</div>') + '</div><textarea id="devPrompt" placeholder="Comandă update..."></textarea><div class="row"><button class="primary" onclick="devSend()">Trimite</button><button onclick="devAnalyze()">Analiză</button><button onclick="devRunUpdate()">Run Update</button></div></div><div class="card"><h3>Raport AI Developer</h3><pre id="devReport"></pre></div>');
 }
 
 function devPush(role,text){
   const h = JSON.parse(localStorage.getItem(CHAT_KEY) || "[]");
-  h.push({role,text,date:new Date().toISOString()});
+  h.push({role:role,text:text,date:new Date().toISOString()});
   localStorage.setItem(CHAT_KEY, JSON.stringify(h));
 }
 
@@ -791,23 +756,23 @@ function devSend(){
 
 async function devAnalyze(){
   const text = document.getElementById("devPrompt").value;
-  const res = await api("/api/ai-developer/analyze", {method:"POST", body:JSON.stringify({text})});
+  const res = await api("/api/ai-developer/analyze", {method:"POST", body:JSON.stringify({text:text})});
   document.getElementById("devReport").textContent = JSON.stringify(res,null,2);
 }
 
 async function devRunUpdate(){
   const text = document.getElementById("devPrompt").value;
   if (!confirm("Rulez update prin backend?")) return;
-  const res = await api("/api/update/run", {method:"POST", body:JSON.stringify({text})});
+  const res = await api("/api/update/run", {method:"POST", body:JSON.stringify({text:text})});
   document.getElementById("devReport").textContent = JSON.stringify(res,null,2);
 }
 
 function insidePage(){
-  content(`<div class="card locked"><h3>Inside</h3><p>Acces intern restricționat. Funcții sensibile blocate fără confirmări suplimentare.</p></div>`);
+  content('<div class="card locked"><h3>Inside</h3><p>Acces intern restricționat. Funcții sensibile blocate fără confirmări suplimentare.</p></div>');
 }
 
 async function diagnosticPage(){
-  content(`<div class="card"><h3>Diagnostic</h3><pre id="diag">Se încarcă...</pre></div>`);
+  content('<div class="card"><h3>Diagnostic</h3><pre id="diag">Se încarcă...</pre></div>');
   const h = await api("/api/health");
   const report = {
     site:SITE_URL,
@@ -823,16 +788,12 @@ async function diagnosticPage(){
 }
 
 function updatesPage(){
-  content(`<div class="card"><h3>Actualizări / Run Update</h3>
-  <input id="promptFiles" type="file" multiple>
-  <textarea id="manualPrompt" placeholder="Prompt manual pentru update..."></textarea>
-  <div class="row"><button onclick="uploadPrompts()">Upload prompturi</button><button onclick="listPrompts()">Listă prompturi</button><button class="primary" onclick="runUpdate()">Run Update</button></div>
-  </div><div class="card"><h3>Log update</h3><pre id="updateLog"></pre></div>`);
+  content('<div class="card"><h3>Actualizări / Run Update</h3><input id="promptFiles" type="file" multiple><textarea id="manualPrompt" placeholder="Prompt manual pentru update..."></textarea><div class="row"><button onclick="uploadPrompts()">Upload prompturi</button><button onclick="listPrompts()">Listă prompturi</button><button class="primary" onclick="runUpdate()">Run Update</button></div></div><div class="card"><h3>Log update</h3><pre id="updateLog"></pre></div>');
 }
 
 async function uploadPrompts(){
   const fd = new FormData();
-  [...document.getElementById("promptFiles").files].forEach(f => fd.append("files",f));
+  Array.from(document.getElementById("promptFiles").files).forEach(function(f){ fd.append("files",f); });
   const txt = document.getElementById("manualPrompt").value;
   if (txt) fd.append("text",txt);
   const r = await fetch("/api/prompts/upload", {method:"POST", body:fd});
@@ -845,28 +806,28 @@ async function listPrompts(){
 
 async function runUpdate(){
   const text = document.getElementById("manualPrompt").value;
-  const res = await api("/api/update/run", {method:"POST", body:JSON.stringify({text})});
+  const res = await api("/api/update/run", {method:"POST", body:JSON.stringify({text:text})});
   document.getElementById("updateLog").textContent = JSON.stringify(res,null,2);
 }
 
 function launchPage(){
-  content(`<div class="card"><h3>Construire / Lansare</h3>
-  <table class="table"><tr><td>Site</td><td>${SITE_URL}</td></tr><tr><td>Repository</td><td>dragosserban95/Energy-Project-Design</td></tr><tr><td>Auto-Deploy</td><td>ON în Render</td></tr></table>
-  </div>`);
+  content('<div class="card"><h3>Construire / Lansare</h3><table class="table"><tr><td>Site</td><td>' + SITE_URL + '</td></tr><tr><td>Repository</td><td>dragosserban95/Energy-Project-Design</td></tr><tr><td>Auto-Deploy</td><td>ON în Render</td></tr></table></div>');
 }
 
 function contactPage(){
-  content(`<div class="card"><h3>Contact</h3><p>Energy Project Design Services</p><p>Email configurabil prin SMTP_FROM.</p></div>`);
+  content('<div class="card"><h3>Contact</h3><p>Energy Project Design Services</p><p>Email configurabil prin SMTP_FROM.</p></div>');
 }
 
 function settingsPage(){
-  content(`<div class="card"><h3>Setări / Cont</h3><pre>${esc(JSON.stringify({user:USER, plan:state.plan},null,2))}</pre><button onclick="localStorage.removeItem('epd_google_user');location.reload()">Logout local</button></div>`);
+  content('<div class="card"><h3>Setări / Cont</h3><pre>' + esc(JSON.stringify({user:USER, plan:state.plan},null,2)) + '</pre><button onclick="localStorage.removeItem(\'epd_google_user\');location.reload()">Logout local</button></div>');
 }
 
 function logsPage(){
-  content(`<div class="card"><h3>Loguri / Integritate</h3>${state.logs.length ? `<table class="table"><tr><th>Tip</th><th>Mesaj</th><th>Data</th></tr>${state.logs.map(l => `<tr><td>${esc(l.type)}</td><td>${esc(l.message)}</td><td>${esc(l.date)}</td></tr>`).join("")}</table>` : `<p class="muted">Nu există loguri locale.</p>`}</div>`);
+  content('<div class="card"><h3>Loguri / Integritate</h3>' + (state.logs.length ? '<table class="table"><tr><th>Tip</th><th>Mesaj</th><th>Data</th></tr>' + state.logs.map(function(l){
+    return '<tr><td>' + esc(l.type) + '</td><td>' + esc(l.message) + '</td><td>' + esc(l.date) + '</td></tr>';
+  }).join("") + '</table>' : '<p class="muted">Nu există loguri locale.</p>') + '</div>');
 }
 
 function genericPage(){
-  content(`<div class="card"><h3>${esc(currentPage)}</h3><p>Pagină pregătită operațional.</p></div>`);
+  content('<div class="card"><h3>' + esc(currentPage) + '</h3><p>Pagină pregătită operațional.</p></div>');
 }

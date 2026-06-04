@@ -1,7 +1,7 @@
 ﻿{
   "product": "Energy Project Design Services",
   "site": "https://energy-project-design-services.onrender.com",
-  "version": "Global All Pages Repair Update",
+  "version": "Global Rebuild All Pages Functions",
   "rules": [
     "UI în limba română.",
     "Nu modifica server.js în update-uri frontend.",

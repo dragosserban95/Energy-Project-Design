@@ -1,18 +1,4 @@
 ﻿{
-  "documentTemplates": [
-    "cerere_racordare",
-    "memoriu_tehnic",
-    "fisa_date_tehnice",
-    "borderou",
-    "vgd",
-    "rte",
-    "adresa_osd"
-  ],
-  "emailTemplates": [
-    "ofertare",
-    "date_lipsa",
-    "osd",
-    "vgd",
-    "rte"
-  ]
+  "documentTemplates": ["cerere_racordare","memoriu_tehnic","fisa_date_tehnice","borderou","vgd","rte","adresa_osd"],
+  "emailTemplates": ["ofertare","date_lipsa","osd","vgd","rte"]
 }
