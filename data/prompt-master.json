@@ -1,22 +1,23 @@
-{
+﻿{
   "product": "Energy Project Design Services",
-  "site": "https://energy-project-design-services.onrender.com",
-  "version": "Big Frontend Update",
-  "rules": [
-    "Nu modifica server.js în update frontend.",
-    "UI în română.",
-    "Export blocat pentru Free/Trial/Basic/Expired și permis pentru Developer.",
-    "AI Developer folosește backend/OpenAI."
-  ],
-  "pages": [
-    "Panou principal",
-    "Date proiect",
-    "Date tehnice",
-    "Documentație",
-    "Ștampile",
+  "version": "Safe Functions Patch",
+  "activeProfile": {
+    "industry": "Gaze naturale",
+    "workType": "BranČ™amente gaze naturale"
+  },
+  "priorityModules": [
+    "DocumentaČ›ie",
+    "Čtampile",
     "Email-uri",
-    "Verificări",
-    "Checklist",
-    "AI Developer"
+    "VerificÄri VGD",
+    "VerificÄri RTE",
+    "AI Developer chat",
+    "Assistant User"
+  ],
+  "permanentRules": [
+    "Nu Č™terge funcČ›ii existente.",
+    "UI Ă®n limba romĂ˘nÄ.",
+    "AI Developer foloseČ™te backend/OpenAI Č™i GitHub self-update.",
+    "Export blocat pentru Free/Trial/Basic/Expired Č™i permis pentru Developer."
   ]
 }

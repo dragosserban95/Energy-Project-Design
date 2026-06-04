@@ -1,66 +1,50 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ro">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Energy Project Design Services</title>
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <div id="login" class="login-screen">
     <div class="login-card">
-      <div class="logo">EPD</div>
+      <div class="brand-badge">EPD</div>
       <h1>Energy Project Design Services</h1>
-      <p>Aplicație web pentru documentații tehnice gaze naturale.</p>
-      <label>Utilizator / Email</label>
-      <input id="user" value="developer">
-      <label>Parolă</label>
-      <input id="pass" type="password">
+      <p>PlatformÄ tehnicÄ pentru documentaČ›ii gaze naturale.</p>
+      <label>Utilizator / Email</label><input id="user" value="developer" autocomplete="username" />
+      <label>ParolÄ</label><input id="pass" type="password" value="" autocomplete="current-password" />
       <button class="primary" onclick="login()">Autentificare</button>
-      <div class="row">
-        <button onclick="showRegister()">Creează cont</button>
-        <button onclick="showForgot()">Am uitat parola</button>
+      <div class="auth-grid">
+        <button onclick="showAuthPanel('register')">CreeazÄ cont</button>
+        <button onclick="showAuthPanel('forgot')">Am uitat parola</button>
         <button onclick="googleLogin()">Login cu Google</button>
       </div>
-      <div id="authBox" class="box hidden"></div>
-      <pre id="loginStatus" class="log"></pre>
+      <div id="authPanel" class="auth-panel hidden"></div>
+      <pre id="loginHealth" class="mini-log"></pre>
     </div>
   </div>
 
   <div id="app" class="app hidden">
-    <aside>
-      <div class="side-head">
-        <div class="logo small">EPD</div>
-        <div><b>EPD Services</b><span>Stable Web Kernel</span></div>
-      </div>
+    <aside class="sidebar">
+      <div class="sidebar-title"><div class="brand-badge small">EPD</div><div><strong>EPD Services</strong><span>Backend Ready</span></div></div>
       <nav id="nav"></nav>
     </aside>
-
-    <main>
-      <header>
-        <div>
-          <h1 id="pageTitle">Panou principal</h1>
-          <p id="pageSub">Profil activ</p>
-        </div>
-        <div class="row">
-          <button onclick="openPage('AI Developer')">AI Developer</button>
-          <button onclick="openPage('Actualizări')">Run Update</button>
-          <button onclick="exportProject()">Export</button>
-        </div>
+    <main class="main">
+      <header class="topbar">
+        <div><h1 id="title">Panou principal</h1><p id="subtitle">Profil activ</p></div>
+        <div class="top-actions"><button onclick="openPage('AI Developer')">AI Developer</button><button onclick="openPage('ActualizÄri')">Run Update</button><button id="exportBtn" onclick="guardedExport()">Export</button></div>
       </header>
-
-      <section class="profile">
+      <section class="profile-bar">
         <label>Industrie<select id="industry" onchange="profileChanged()"></select></label>
         <label>Tip lucrare<select id="workType" onchange="profileChanged()"></select></label>
-        <span id="statusPill" class="pill">Activ</span>
-        <span id="planPill" class="pill muted">Plan</span>
+        <span id="statusPill" class="pill">Activ</span><span id="planPill" class="pill muted">Plan</span>
       </section>
-
       <section id="content" class="content"></section>
     </main>
   </div>
-
   <div id="toast" class="toast hidden"></div>
   <script src="/app.js"></script>
 </body>
 </html>
+

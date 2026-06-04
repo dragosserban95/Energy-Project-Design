@@ -1,1 +1,71 @@
-{ "documentTemplates": [ { "id": "cerere_racordare", "name": "Cerere racordare", "body": "Către <osd>,\n\nSubsemnatul/Subscrisa <beneficiar>, solicit racordarea la sistemul de distribuție gaze naturale pentru imobilul situat în <adresa_lucrare>, <localitate>, <judet>.\n\nTip lucrare: <tip_lucrare>.\n\nData: <data_document>\nProiectant: <proiectant>" }, { "id": "memoriu_tehnic", "name": "Memoriu tehnic", "body": "MEMORIU TEHNIC\n\nBeneficiar: <beneficiar>\nAdresă lucrare: <adresa_lucrare>\nDebit instalat: <debit_instalat>\nPresiune regim: <presiune_regim>\nDiametru conductă: <diametru_conducta>\nMaterial conductă: <material_conducta>\nLungime branșament: <lungime_bransament>\n\nObservații: <observatii_tehnice>" }, { "id": "vgd", "name": "Document verificare VGD", "body": "DOCUMENT VERIFICARE VGD\n\nVerificator: <verificator_vgd>\nAtestat: <atestat_vgd>\nData verificare: <data_verificare_vgd>\nStatus: <status_vgd>\nObservații: <observatii_vgd>\n\n<stampila_vgd>" }, { "id": "rte", "name": "Document verificare RTE", "body": "DOCUMENT RTE\n\nResponsabil RTE: <responsabil_rte>\nAutorizație: <autorizatie_rte>\nData verificare: <data_verificare_rte>\nStatus: <status_rte>\nObservații: <observatii_rte>\n\n<stampila_rte>" }, { "id": "adresa_osd", "name": "Adresă către OSD", "body": "Către <osd>,\n\nVă transmitem documentația pentru lucrarea <tip_lucrare>, beneficiar <beneficiar>, amplasament <adresa_lucrare>.\n\nCu stimă,\n<proiectant>" } ], "emailTemplates": [ { "id": "ofertare", "name": "Ofertare", "subject": "Ofertă documentație gaze naturale - <beneficiar>", "body": "Bună ziua,\n\nVă transmitem oferta pentru documentația tehnică aferentă lucrării <tip_lucrare> din <adresa_lucrare>.\n\nCu respect,\nEnergy Project Design Services" }, { "id": "date_lipsa", "name": "Solicitare date lipsă", "subject": "Date lipsă documentație - <beneficiar>", "body": "Bună ziua,\n\nPentru finalizarea documentației sunt necesare următoarele date: <observatii>.\n\nMulțumim." }, { "id": "transmitere_osd", "name": "Transmitere documentație OSD", "subject": "Documentație branșament gaze naturale - <beneficiar>", "body": "Către <osd>,\n\nVă transmitem documentația pentru lucrarea situată în <adresa_lucrare>.\n\nCu stimă,\n<proiectant>" }, { "id": "vgd", "name": "Transmitere verificare VGD", "subject": "Document verificat VGD - <beneficiar>", "body": "Bună ziua,\n\nDocumentația a fost verificată VGD. Status: <status_vgd>.\nObservații: <observatii_vgd>" }, { "id": "rte", "name": "Transmitere verificare RTE", "subject": "Document RTE - <beneficiar>", "body": "Bună ziua,\n\nDocumentația RTE are status: <status_rte>.\nObservații: <observatii_rte>" } ] }
+﻿{
+  "documentTemplates": [
+    {
+      "id": "cerere_racordare",
+      "name": "Cerere racordare",
+      "body": "CÄtre <osd>,\n\nSubsemnatul/Subscrisa <beneficiar>, solicit racordarea la sistemul de distribuČ›ie gaze naturale pentru imobilul situat Ă®n <adresa_lucrare>, <localitate>, <judet>.\n\nTip lucrare: <tip_lucrare>.\n\nData: <data_document>\nProiectant: <proiectant>"
+    },
+    {
+      "id": "memoriu_tehnic",
+      "name": "Memoriu tehnic",
+      "body": "MEMORIU TEHNIC\n\nBeneficiar: <beneficiar>\nAdresÄ lucrare: <adresa_lucrare>\nDebit instalat: <debit_instalat>\nPresiune regim: <presiune_regim>\nDiametru conductÄ: <diametru_conducta>\nMaterial conductÄ: <material_conducta>\nLungime branČ™ament: <lungime_bransament>\n\nObservaČ›ii: <observatii_tehnice>"
+    },
+    {
+      "id": "fisa_date_tehnice",
+      "name": "FiČ™Ä date tehnice",
+      "body": "FIČÄ‚ DATE TEHNICE\nBeneficiar: <beneficiar>\nOSD: <osd>\nPunct racordare: <punct_racordare>\nPost reglare: <post_reglare>\nContor: <contor>\nCategorie consumator: <categorie_consumator>"
+    },
+    {
+      "id": "borderou",
+      "name": "Borderou documente",
+      "body": "BORDEROU DOCUMENTE\n\n1. Cerere racordare\n2. Memoriu tehnic\n3. FiČ™Ä date tehnice\n4. Document verificare VGD\n5. Document verificare RTE\n\nBeneficiar: <beneficiar>"
+    },
+    {
+      "id": "vgd",
+      "name": "Document verificare VGD",
+      "body": "DOCUMENT VERIFICARE VGD\n\nVerificator: <verificator_vgd>\nAtestat: <atestat_vgd>\nData verificare: <data_verificare_vgd>\nStatus: <status_vgd>\nObservaČ›ii: <observatii_vgd>\n\n<stampila_vgd>"
+    },
+    {
+      "id": "rte",
+      "name": "Document verificare RTE",
+      "body": "DOCUMENT RTE\n\nResponsabil RTE: <responsabil_rte>\nAutorizaČ›ie: <autorizatie_rte>\nData verificare: <data_verificare_rte>\nStatus: <status_rte>\nObservaČ›ii: <observatii_rte>\n\n<stampila_rte>"
+    },
+    {
+      "id": "adresa_osd",
+      "name": "AdresÄ cÄtre OSD",
+      "body": "CÄtre <osd>,\n\nVÄ transmitem documentaČ›ia pentru lucrarea <tip_lucrare>, beneficiar <beneficiar>, amplasament <adresa_lucrare>.\n\nCu stimÄ,\n<proiectant>"
+    }
+  ],
+  "emailTemplates": [
+    {
+      "id": "ofertare",
+      "name": "Ofertare",
+      "subject": "OfertÄ documentaČ›ie gaze naturale - <beneficiar>",
+      "body": "BunÄ ziua,\n\nVÄ transmitem oferta pentru documentaČ›ia tehnicÄ aferentÄ lucrÄrii <tip_lucrare> din <adresa_lucrare>.\n\nCu respect,\nEnergy Project Design Services"
+    },
+    {
+      "id": "date_lipsa",
+      "name": "Solicitare date lipsÄ",
+      "subject": "Date lipsÄ documentaČ›ie - <beneficiar>",
+      "body": "BunÄ ziua,\n\nPentru finalizarea documentaČ›iei sunt necesare urmÄtoarele date: <observatii>.\n\nMulČ›umim."
+    },
+    {
+      "id": "transmitere_osd",
+      "name": "Transmitere documentaČ›ie OSD",
+      "subject": "DocumentaČ›ie branČ™ament gaze naturale - <beneficiar>",
+      "body": "CÄtre <osd>,\n\nVÄ transmitem documentaČ›ia pentru lucrarea situatÄ Ă®n <adresa_lucrare>.\n\nCu stimÄ,\n<proiectant>"
+    },
+    {
+      "id": "vgd",
+      "name": "Transmitere verificare VGD",
+      "subject": "Document verificat VGD - <beneficiar>",
+      "body": "BunÄ ziua,\n\nDocumentaČ›ia a fost verificatÄ VGD. Status: <status_vgd>.\nObservaČ›ii: <observatii_vgd>"
+    },
+    {
+      "id": "rte",
+      "name": "Transmitere verificare RTE",
+      "subject": "Document RTE - <beneficiar>",
+      "body": "BunÄ ziua,\n\nDocumentaČ›ia RTE are status: <status_rte>.\nObservaČ›ii: <observatii_rte>"
+    }
+  ]
+}
