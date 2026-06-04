@@ -406,6 +406,8 @@ app.get("/api/downloads", (req, res) => {
 });
 
 
+// === EPD GOOGLE OAUTH ROUTES START ===
+
 function getPublicBaseUrl() {
   return String(
     process.env.EPD_PUBLIC_BASE_URL ||
@@ -437,11 +439,9 @@ app.get("/api/auth/google", (req, res) => {
     return res.status(500).send("Google OAuth is not configured.");
   }
 
-  const callbackUrl = getGoogleCallbackUrl();
-
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID,
-    redirect_uri: callbackUrl,
+    redirect_uri: getGoogleCallbackUrl(),
     response_type: "code",
     scope: "openid email profile",
     access_type: "offline",
@@ -459,8 +459,6 @@ app.get("/api/auth/google/callback", async (req, res) => {
       return res.status(400).send("Missing Google authorization code.");
     }
 
-    const callbackUrl = getGoogleCallbackUrl();
-
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: {
@@ -470,7 +468,7 @@ app.get("/api/auth/google/callback", async (req, res) => {
         code: String(code),
         client_id: process.env.GOOGLE_CLIENT_ID,
         client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: callbackUrl,
+        redirect_uri: getGoogleCallbackUrl(),
         grant_type: "authorization_code"
       })
     });
@@ -530,6 +528,8 @@ app.get("/api/auth/google/callback", async (req, res) => {
     res.status(500).send("Google callback error.");
   }
 });
+
+// === EPD GOOGLE OAUTH ROUTES END ===
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Energy Project Design ruleazÄ pe portul ${PORT}`);

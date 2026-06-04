@@ -1,7 +1,103 @@
 ﻿{
-  "projectFields": ["beneficiar","adresa_lucrare","localitate","judet","telefon","email","osd","tip_lucrare","industrie","numar_contract","data_contract","proiectant","executant","verificator_vgd","responsabil_rte","observatii"],
-  "technicalFields": ["debit_instalat","presiune_regim","diametru_conducta","material_conducta","lungime_bransament","punct_racordare","post_reglare","contor","categorie_consumator","traseu","observatii_tehnice"],
-  "vgdFields": ["verificator_vgd","atestat_vgd","data_verificare_vgd","status_vgd","observatii_vgd"],
-  "rteFields": ["responsabil_rte","autorizatie_rte","data_verificare_rte","status_rte","observatii_rte"],
-  "calcFields": ["putere_instalata_kw","debit_calculat_mc_h","debit_recomandat_mc_h","contor_orientativ","risc_presiune","estimare_materiale","estimare_cost","rezultat_calcul","observatii_calcul"]
+  "pages": [
+    {
+      "id": "date_proiect",
+      "title": "Date proiect",
+      "fields": [
+        "beneficiar",
+        "adresa_lucrare",
+        "localitate",
+        "judet",
+        "telefon",
+        "email",
+        "osd",
+        "tip_lucrare",
+        "industrie",
+        "numar_contract",
+        "data_contract",
+        "proiectant",
+        "verificator_vgd",
+        "responsabil_rte",
+        "observatii"
+      ]
+    },
+    {
+      "id": "date_tehnice",
+      "title": "Date tehnice",
+      "fields": [
+        "debit_instalat",
+        "presiune_regim",
+        "diametru_conducta",
+        "material_conducta",
+        "lungime_bransament",
+        "punct_racordare",
+        "post_reglare",
+        "contor",
+        "categorie_consumator",
+        "traseu",
+        "observatii_tehnice"
+      ]
+    },
+    {
+      "id": "documentatie",
+      "title": "DocumentaČ›ie",
+      "fields": [
+        "numar_document",
+        "data_document",
+        "revizie",
+        "titlu_document",
+        "observatii",
+        "stampila_proiectant",
+        "stampila_vgd",
+        "stampila_rte"
+      ]
+    },
+    {
+      "id": "vgd",
+      "title": "VGD",
+      "fields": [
+        "verificator_vgd",
+        "atestat_vgd",
+        "data_verificare_vgd",
+        "status_vgd",
+        "observatii_vgd",
+        "stampila_vgd"
+      ]
+    },
+    {
+      "id": "rte",
+      "title": "RTE",
+      "fields": [
+        "responsabil_rte",
+        "autorizatie_rte",
+        "data_verificare_rte",
+        "status_rte",
+        "observatii_rte",
+        "stampila_rte"
+      ]
+    },
+    {
+      "id": "emailuri",
+      "title": "Email-uri",
+      "fields": [
+        "email_destinatar",
+        "email_cc",
+        "subiect_email",
+        "continut_email",
+        "atasamente",
+        "semnatura_email"
+      ]
+    },
+    {
+      "id": "calcul",
+      "title": "Calcul",
+      "fields": [
+        "calcul_debit",
+        "calcul_presiune",
+        "pierdere_presiune",
+        "rezultat_calcul",
+        "observatii_calcul"
+      ]
+    }
+  ]
 }
