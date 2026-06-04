@@ -1,23 +1,22 @@
 {
-  "product": "Energy Project Services",
-  "version": "PowerShell Big Update",
-  "activeProfile": {
-    "industry": "Gaze naturale",
-    "workType": "Branșamente gaze naturale"
-  },
-  "priorityModules": [
-    "Documentație",
-    "Email-uri",
-    "Ștampile",
-    "VGD",
-    "RTE",
-    "AI Developer",
-    "Asistent utilizator"
-  ],
+  "product": "Energy Project Design Services",
+  "site": "https://energy-project-design-services.onrender.com",
+  "version": "Big Frontend Update",
   "rules": [
-    "Nu șterge funcții existente",
-    "UI română",
-    "Export blocat Free/Trial/Basic/Expired",
-    "Developer export permis"
+    "Nu modifica server.js în update frontend.",
+    "UI în română.",
+    "Export blocat pentru Free/Trial/Basic/Expired și permis pentru Developer.",
+    "AI Developer folosește backend/OpenAI."
+  ],
+  "pages": [
+    "Panou principal",
+    "Date proiect",
+    "Date tehnice",
+    "Documentație",
+    "Ștampile",
+    "Email-uri",
+    "Verificări",
+    "Checklist",
+    "AI Developer"
   ]
 }

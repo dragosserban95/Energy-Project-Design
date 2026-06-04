@@ -1,31 +1,65 @@
 <!doctype html>
 <html lang="ro">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Energy Project Services</title>
-  <link rel="stylesheet" href="/style.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Energy Project Design Services</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <div id="login" class="login-screen">
     <div class="login-card">
-      <div class="brand-row"><div class="logo">EPD</div><div><h1>Energy Project Services</h1><p>Platformă pentru documentații gaze naturale</p></div></div>
-      <label>Utilizator / email</label><input id="user" value="developer" autocomplete="username" />
-      <label>Parolă</label><input id="pass" type="password" autocomplete="current-password" />
-      <button class="primary full" onclick="login()">Autentificare</button>
-      <div class="login-actions"><button onclick="showAuthPanel('register')">Creează cont</button><button onclick="showAuthPanel('forgot')">Recuperare parolă</button><button onclick="googleLogin()">Login cu Google</button></div>
-      <div id="authPanel" class="auth-panel hidden"></div>
-      <pre id="loginHealth" class="mini-log"></pre>
+      <div class="logo">EPD</div>
+      <h1>Energy Project Design Services</h1>
+      <p>Aplicație web pentru documentații tehnice gaze naturale.</p>
+      <label>Utilizator / Email</label>
+      <input id="user" value="developer">
+      <label>Parolă</label>
+      <input id="pass" type="password">
+      <button class="primary" onclick="login()">Autentificare</button>
+      <div class="row">
+        <button onclick="showRegister()">Creează cont</button>
+        <button onclick="showForgot()">Am uitat parola</button>
+        <button onclick="googleLogin()">Login cu Google</button>
+      </div>
+      <div id="authBox" class="box hidden"></div>
+      <pre id="loginStatus" class="log"></pre>
     </div>
   </div>
+
   <div id="app" class="app hidden">
-    <aside class="sidebar"><div class="sidebar-head"><div class="logo small">EPD</div><div><b>Energy Project Services</b><span>Stable Web Kernel</span></div></div><nav id="nav"></nav></aside>
-    <main class="main">
-      <header class="topbar"><div><h1 id="title">Panou principal</h1><p id="subtitle">Profil activ</p></div><div class="top-actions"><button onclick="openPage('AI Developer')">AI Developer</button><button onclick="openPage('Actualizări')">Run Update</button><button onclick="guardedExport()">Export</button></div></header>
-      <section class="profile-bar"><label>Industrie<select id="industry" onchange="profileChanged()"></select></label><label>Tip lucrare<select id="workType" onchange="profileChanged()"></select></label><span id="statusPill" class="pill">Activ</span><span id="planPill" class="pill muted">Plan</span></section>
+    <aside>
+      <div class="side-head">
+        <div class="logo small">EPD</div>
+        <div><b>EPD Services</b><span>Stable Web Kernel</span></div>
+      </div>
+      <nav id="nav"></nav>
+    </aside>
+
+    <main>
+      <header>
+        <div>
+          <h1 id="pageTitle">Panou principal</h1>
+          <p id="pageSub">Profil activ</p>
+        </div>
+        <div class="row">
+          <button onclick="openPage('AI Developer')">AI Developer</button>
+          <button onclick="openPage('Actualizări')">Run Update</button>
+          <button onclick="exportProject()">Export</button>
+        </div>
+      </header>
+
+      <section class="profile">
+        <label>Industrie<select id="industry" onchange="profileChanged()"></select></label>
+        <label>Tip lucrare<select id="workType" onchange="profileChanged()"></select></label>
+        <span id="statusPill" class="pill">Activ</span>
+        <span id="planPill" class="pill muted">Plan</span>
+      </section>
+
       <section id="content" class="content"></section>
     </main>
   </div>
+
   <div id="toast" class="toast hidden"></div>
   <script src="/app.js"></script>
 </body>
