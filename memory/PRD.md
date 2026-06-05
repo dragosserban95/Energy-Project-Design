@@ -1,49 +1,77 @@
 # Energy Project Design Services — PRD
 
 ## Original Problem Statement
-Web platform for Romanian natural-gas engineering companies — manage technical documentation: branches, pipe extensions, utilization installations, permits, verifications, communication with OSD / Designer / Contractor / VGD / RTE / Client.
+B2B SaaS for Romanian engineering documentation, starting with **gas naturale** (branșamente, extinderi, instalații utilizare). Architecture supports multi-industry extension (electrical, water/sewage, civil, telecom).
 
-## User Choices (Latest Iteration — V4.5)
+## User Choices
 - UI: Romanian
-- Email: Gmail SMTP, per-user creds (each user enters their own Gmail + App Password)
-- Payments: Stripe with EUR
+- Email: Gmail SMTP, per-user creds
+- Payments: Stripe with EUR (currently `sk_test_emergent`, ready for `sk_live_...`)
 - Real company: **ENERGY PROJECT DESIGN SRL · CUI 43151074 · J40/12982/2020 · Str. Lt. Alexandru Popescu nr. 9B, Sectorul 3, București**
-- Digital signature: PKCS#12 PKI (CMS .p7s) + QES scaffold ready for certSIGN/DigiSign/Trans Sped activation
-- Auth: JWT email/password + Emergent Google OAuth (GDPR consent captured at register)
+- Digital signature: local PKCS#12 + QES scaffold (certSIGN/DigiSign/Trans Sped)
+- Auth: JWT email/password + Emergent Google OAuth + GDPR consent
+- Developer account: **`dragosserban95@gmail.com`** (auto-detected, plan=`developer`, lifetime)
 
 ## Architecture
-- Backend: FastAPI + MongoDB (motor), modules split: `plans.py` (10 plans), `calc_engine.py` (smart calculations), `ai_assistant.py` (intent parser), `qes_provider.py`, `signing.py`, `docx_processor.py`, `email_sender.py`, `auth.py`, `db.py`
-- Frontend: React 19 + Tailwind + Swiss/brutalist design (IBM Plex Sans, amber #FFB300 accent)
-- Navigation grouped: Operațional / Documentație / Comunicare & Control / Cont
+- Backend: FastAPI + MongoDB (motor); modules: `industries.py`, `system_templates.py`, `plans.py`, `calc_engine.py`, `ai_assistant.py`, `ai_developer.py`, `qes_provider.py`, `docx_processor.py`, `signing.py`, `email_sender.py`, `auth.py`, `db.py`
+- Frontend: React 19 + Tailwind, IBM Plex Sans/Mono, amber #FFB300, Swiss/brutalist
+- Per-user **active project** drives all operational pages
+- System-seeded DOCX templates available for all users (clone to library)
 
-## Implemented (2026-02 V4.5)
-- ✅ 10 plans (EUR): Basic 99, Proiectant 149, Executant 149, Avize 129, Ofertare 119, Contabilitate 119, VGD 199, RTE 199, Societate 399, Developer (intern lifetime)
-- ✅ Date proiect (14 required fields + observații, completion score, placeholder export)
-- ✅ Date tehnice (11 fields + override per result)
-- ✅ Calcul inteligent — 6 smart boxes: debit_calculat, debit_recomandat, putere_instalata_kw, risc_presiune, estimare_cost, contor_orientativ — each with formula, surse, status, override
-- ✅ Verifică documentație — scoring engine with 8 checks, summary OK/Warning/Missing, copy + JSON export
-- ✅ AI Assistant — rule-based intent parser (~13 intents), preview before navigation, history
-- ✅ Audit interfață — 13+ pages cataloged with required handlers and plan-access flags
-- ✅ Email composer with 7 templates, role-based recipients, placeholder replacement, mailto, attach generated docs
-- ✅ Certificări interne — hash SHA-256 + timestamp + role + signer + document title, history list
-- ✅ Templates / Documents / Stamps / Certificates PKI (existing, fully functional)
-- ✅ Legal pages with real Energy Project Design data (Termeni, Confidențialitate, GDPR)
-- ✅ GDPR consent required at registration; GDPR export + account delete endpoints
-- ✅ Per-user Gmail config in Settings + QES provider scaffold
+## Industries (5 catalogued)
+1. ✅ **Gas naturale** (active) — 5 subdomenii active: Branșamente, Instalații utilizare, Extinderi conductă, Studii fezabilitate, Înlocuiri/modernizări
+2. ⏳ Electrică (coming_soon)
+3. ⏳ Apă & canalizare (coming_soon)
+4. ⏳ Construcții civile (coming_soon)
+5. ⏳ Telecom (coming_soon)
+
+## Implemented (2026-02, V4.5+V4.6)
+- ✅ 10 EUR plans (Basic 99 → Societate 399 + Developer)
+- ✅ Multi-project CRUD + active project switcher in header + archive/restore/delete
+- ✅ Industry & subdomain selector on project creation (validated server-side)
+- ✅ Date proiect (14 required fields + completion score)
+- ✅ Date tehnice + Calcul inteligent (6 smart boxes with formulas, sources, override)
+- ✅ 4 system templates pre-seeded for gas engineering (Cerere racordare, Memoriu tehnic, Borderou, Adresă OSD)
+- ✅ Clone-to-library workflow for system templates
+- ✅ Templates / Stamps / Certificates PKI / Documents with Print button
+- ✅ Email composer with 7 templates + role-based recipients + placeholder resolution
+- ✅ Internal Certifications (SHA-256 + role + signer + timestamp)
+- ✅ AI Assistant — intent parser (13 intents) with command-packet preview
+- ✅ AI Developer panel (Plan Mode only — no auto-apply) with OpenAI BYOK enrichment, safety rules, handoff list (Emergent/Claude/ChatGPT/Codex)
+- ✅ Verifică documentație — 8-check scoring engine + JSON export
+- ✅ Audit interfață — 13+ pages with plan-access flags
+- ✅ Settings: per-user Gmail config + QES credentials forms (per provider)
+- ✅ Legal pages with real ENERGY PROJECT DESIGN SRL data
+- ✅ GDPR consent required at register; /gdpr/export + /gdpr/account DELETE
+- ✅ Developer auto-detection across email/password AND Google OAuth
 
 ## Testing
-- 47/47 backend pytest pass (27 regression + 20 v4.5)
+- **67/67 backend pytest pass** (27 regression + 20 v4.5 + 20 v4.6)
 
 ## Backlog
-- P1: PDF export alongside DOCX
-- P1: Multi-project support (currently one default project per user)
-- P1: Public verification page (`/verify/{doc_id}`) for third parties
-- P2: Real QES provider implementation (certSIGN/DigiSign/Trans Sped)
+- P1: Encrypt `qes_credentials` at rest (Fernet/KMS)
+- P1: Implement real certSIGN/DigiSign/Trans Sped subclasses (needs API contract)
+- P1: Switch to Stripe live key (`sk_live_...`)
+- P2: PDF export alongside DOCX
 - P2: Team workspaces with role inheritance
-- P2: Mobile app
-- P2: AI Developer self-update controlled patch system
+- P2: Activate electrical / water-sewage / civil / telecom industries
+- P2: Public verification page `/verify/{doc_id}`
+- P3: Encrypt action_logs and gmail_app_password at rest
 
-## Next Action Items
-- Real Stripe live key (currently `sk_test_emergent`)
-- Real QES contract activation
-- Optional: add team/multi-user workspaces
+## Handoff (for any AI / human developer)
+- Code root: `/app/` (backend `/app/backend`, frontend `/app/frontend`)
+- API base: `${REACT_APP_BACKEND_URL}/api` (Kubernetes ingress, all backend routes start with `/api`)
+- DB: MongoDB via `MONGO_URL` env var
+- Tests: `pytest /app/backend/tests/ -v`
+- Restart: `sudo supervisorctl restart backend|frontend`
+- Compatible AI agents to continue: Emergent E1, Anthropic Claude, OpenAI ChatGPT, OpenAI Codex/Copilot
+
+### Adding a new industry
+1. Add entry in `/app/backend/industries.py` `INDUSTRIES` dict with `status='active'` and subdomains with `active=True`
+2. Add system templates in `/app/backend/system_templates.py` (builder + entry in `SYSTEM_TEMPLATES`)
+3. No frontend changes needed — `/proiecte` page auto-discovers via `GET /api/industries`
+
+### Adding a new QES provider
+1. Implement subclass in `/app/backend/qes_provider.py` (set `status='active'` in `info()`)
+2. Register in `PROVIDERS` dict
+3. Add credential field schema in `/app/frontend/src/pages/Settings.jsx` `QES_FIELDS`

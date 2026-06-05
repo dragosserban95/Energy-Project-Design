@@ -63,7 +63,7 @@ def _is_developer_email(email: str) -> bool:
 
 def _user_from_doc(doc: dict) -> User:
     """Construct a User model, computing the gmail_configured boolean and stripping secrets."""
-    d = {k: v for k, v in doc.items() if k not in ("_id", "password_hash", "gmail_app_password")}
+    d = {k: v for k, v in doc.items() if k not in ("_id", "password_hash", "gmail_app_password", "qes_credentials")}
     d["gmail_configured"] = bool(doc.get("gmail_user") and doc.get("gmail_app_password"))
     return User(**d)
 
@@ -136,6 +136,7 @@ async def google_session(payload: dict, response: Response):
     user_doc = await db.users.find_one({"email": email}, {"_id": 0})
     if not user_doc:
         user_id = new_id("usr_")
+        is_dev = _is_developer_email(email)
         user_doc = {
             "user_id": user_id,
             "email": email,
@@ -143,14 +144,22 @@ async def google_session(payload: dict, response: Response):
             "company": None,
             "picture": data.get("picture"),
             "auth_provider": "google",
-            "plan": plans_module.DEFAULT_PLAN,
+            "plan": "developer" if is_dev else plans_module.DEFAULT_PLAN,
             "plan_renews_at": None,
             "gdpr_consent": True,
             "gdpr_consent_at": datetime.now(timezone.utc).isoformat(),
-            "is_developer": False,
+            "is_developer": is_dev,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         await db.users.insert_one(dict(user_doc))
+    elif _is_developer_email(email) and not user_doc.get("is_developer"):
+        # Auto-upgrade existing user if they're now a developer
+        await db.users.update_one(
+            {"email": email},
+            {"$set": {"is_developer": True, "plan": "developer"}},
+        )
+        user_doc["is_developer"] = True
+        user_doc["plan"] = "developer"
     session_token = data["session_token"]
     expires_at = datetime.now(timezone.utc) + timedelta(days=7)
     await db.user_sessions.insert_one({
@@ -611,13 +620,6 @@ async def stripe_webhook(request: Request):
 
 
 # ====================== PROJECTS ======================
-DEVELOPER_EMAILS = {"dragosserban95@gmail.com"}
-
-
-def _is_developer_email(email: str) -> bool:
-    return (email or "").lower() in DEVELOPER_EMAILS
-
-
 async def _get_active_project(user_id: str) -> dict:
     """Return active project for user, creating one if none exist."""
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "active_project_id": 1})
@@ -770,6 +772,15 @@ async def list_projects(include_archived: bool = False, user: User = Depends(get
 
 @api.post("/projects")
 async def create_project(payload: ProjectCreate, user: User = Depends(get_current_user)):
+    # Validate industry & subdomain exist and are active
+    if payload.industry not in industries_module.INDUSTRIES:
+        raise HTTPException(status_code=400, detail=f"Industrie necunoscută: {payload.industry}")
+    ind = industries_module.INDUSTRIES[payload.industry]
+    if ind.get("status") != "active":
+        raise HTTPException(status_code=400, detail=f"Industria '{ind['name']}' nu este încă activă")
+    sd_ids = {s["id"] for s in ind.get("subdomains", [])}
+    if payload.subdomain not in sd_ids:
+        raise HTTPException(status_code=400, detail=f"Subdomeniu necunoscut: {payload.subdomain}")
     doc = await _create_project_doc(user.user_id, name=payload.name, description=payload.description or "",
                                     industry=payload.industry, subdomain=payload.subdomain)
     return doc

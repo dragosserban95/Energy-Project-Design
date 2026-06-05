@@ -67,7 +67,7 @@ async def get_current_user(request: Request) -> User:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     def _build(doc):
-        d = {k: v for k, v in doc.items() if k not in ("_id", "password_hash", "gmail_app_password")}
+        d = {k: v for k, v in doc.items() if k not in ("_id", "password_hash", "gmail_app_password", "qes_credentials")}
         d["gmail_configured"] = bool(doc.get("gmail_user") and doc.get("gmail_app_password"))
         return User(**d)
 
