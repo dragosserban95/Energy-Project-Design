@@ -13,7 +13,7 @@ export default function Settings() {
   const [configured, setConfigured] = useState(false);
   const [busy, setBusy] = useState(false);
   const [providers, setProviders] = useState([]);
-  const [selectedProvider, setSelectedProvider] = useState(user?.qes_provider || 'mock');
+  const [selectedProvider, setSelectedProvider] = useState(user?.qes_provider || null);
 
   useEffect(() => {
     (async () => {
