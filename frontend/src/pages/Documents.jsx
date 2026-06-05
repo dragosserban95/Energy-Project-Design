@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import AppShell from '../components/AppShell';
 import api, { API } from '../lib/api';
 import { toast } from 'sonner';
-import { Download, Trash2, Mail, ShieldCheck, FileCheck2 } from 'lucide-react';
+import { Download, Trash2, Mail, ShieldCheck, FileCheck2, Printer } from 'lucide-react';
 
 export default function Documents() {
   const [items, setItems] = useState([]);
@@ -25,6 +25,22 @@ export default function Documents() {
         a.href = URL.createObjectURL(b);
         a.download = sig ? doc.name.replace(/\.docx$/i, '.p7s') : doc.name;
         a.click();
+      });
+  };
+
+  const printDoc = (doc) => {
+    const token = localStorage.getItem('auth_token') || '';
+    const url = `${API}/documents/${doc.document_id}/download`;
+    fetch(url, { headers: { Authorization: `Bearer ${token}` }, credentials: 'include' })
+      .then(r => r.blob())
+      .then(b => {
+        const objUrl = URL.createObjectURL(b);
+        // DOCX cannot be printed directly in browser — download + show toast
+        const a = document.createElement('a');
+        a.href = objUrl;
+        a.download = doc.name;
+        a.click();
+        toast.success('Document descărcat. Deschideți-l în Word și apăsați Ctrl+P pentru tipărire.');
       });
   };
 
@@ -78,6 +94,7 @@ export default function Documents() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2 justify-end">
                       <button onClick={() => download(d)} className="ghost-btn text-xs" data-testid={`download-${d.document_id}`}><Download className="w-3.5 h-3.5" />DOCX</button>
+                      <button onClick={() => printDoc(d)} className="ghost-btn text-xs" data-testid={`print-${d.document_id}`} title="Tipărește (descarcă DOCX)"><Printer className="w-3.5 h-3.5" />Tipărește</button>
                       {d.signed && (
                         <button onClick={() => download(d, true)} className="ghost-btn text-xs" data-testid={`download-sig-${d.document_id}`}><ShieldCheck className="w-3.5 h-3.5" />.p7s</button>
                       )}

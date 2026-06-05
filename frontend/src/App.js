@@ -7,6 +7,8 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import Projects from './pages/Projects';
+import Developer from './pages/Developer';
 import ProjectData from './pages/ProjectData';
 import TechnicalData from './pages/TechnicalData';
 import SmartCalc from './pages/SmartCalc';
@@ -49,6 +51,8 @@ function AppRouter() {
       <Route path="/gdpr" element={<Gdpr />} />
 
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/proiecte" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+      <Route path="/developer" element={<ProtectedRoute><Developer /></ProtectedRoute>} />
       <Route path="/proiect" element={<ProtectedRoute><ProjectData /></ProtectedRoute>} />
       <Route path="/tehnice" element={<ProtectedRoute><TechnicalData /></ProtectedRoute>} />
       <Route path="/calcul" element={<ProtectedRoute><SmartCalc /></ProtectedRoute>} />

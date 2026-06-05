@@ -1,9 +1,10 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import ActiveProjectBar from './ActiveProjectBar';
 import {
   LayoutDashboard, ClipboardList, Settings2, Calculator, FileText, FileCheck2,
   Stamp, ShieldCheck, Mail, BadgeCheck, GaugeCircle, CreditCard, Settings, LogOut,
-  Sparkles, Wrench, ListChecks, Flame, ChevronRight,
+  Sparkles, Wrench, ListChecks, Flame, ChevronRight, FolderKanban,
 } from 'lucide-react';
 
 const SECTIONS = [
@@ -11,7 +12,8 @@ const SECTIONS = [
     title: 'Operațional',
     items: [
       { to: '/dashboard', label: 'Panou principal', icon: LayoutDashboard, tid: 'nav-dashboard' },
-      { to: '/proiect', label: 'Date proiect', icon: ClipboardList, tid: 'nav-proiect' },
+      { to: '/proiecte', label: 'Proiecte', icon: FolderKanban, tid: 'nav-proiecte' },
+      { to: '/proiect', label: 'Date proiect activ', icon: ClipboardList, tid: 'nav-proiect' },
       { to: '/tehnice', label: 'Date tehnice', icon: Settings2, tid: 'nav-tehnice' },
       { to: '/calcul', label: 'Calcul inteligent', icon: Calculator, tid: 'nav-calcul' },
     ],
@@ -131,7 +133,10 @@ export default function AppShell({ children, title, subtitle }) {
             <h1 className="text-xl font-semibold tracking-tight" data-testid="page-title">{title}</h1>
             {subtitle && <div className="text-xs text-gray-500 mt-0.5">{subtitle}</div>}
           </div>
-          <div className="text-xs text-gray-500 uppercase tracking-[0.2em]">{user?.email}</div>
+          <div className="flex items-center gap-4">
+            <ActiveProjectBar />
+            <div className="text-xs text-gray-500 uppercase tracking-[0.2em] hidden lg:block">{user?.email}</div>
+          </div>
         </header>
         <main className="flex-1 px-8 py-8 page-enter">{children}</main>
       </div>

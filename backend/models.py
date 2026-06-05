@@ -35,6 +35,8 @@ class User(BaseModel):
     gmail_user: Optional[str] = None
     gmail_configured: bool = False
     qes_provider: Optional[str] = None
+    qes_credentials: Optional[Dict[str, Any]] = None  # stored per provider
+    active_project_id: Optional[str] = None
     gdpr_consent: bool = False
     gdpr_consent_at: Optional[str] = None
     is_developer: bool = False

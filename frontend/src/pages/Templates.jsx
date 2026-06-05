@@ -3,16 +3,20 @@ import { Link } from 'react-router-dom';
 import AppShell from '../components/AppShell';
 import api from '../lib/api';
 import { toast } from 'sonner';
-import { Upload, FileText, Trash2, ArrowRight } from 'lucide-react';
+import { Upload, FileText, Trash2, ArrowRight, Sparkles, Copy } from 'lucide-react';
 
 export default function Templates() {
   const [items, setItems] = useState([]);
+  const [systemTpl, setSystemTpl] = useState([]);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef(null);
 
   const load = async () => {
-    const { data } = await api.get('/templates');
-    setItems(data);
+    const [{ data: u }, { data: s }] = await Promise.all([
+      api.get('/templates'),
+      api.get('/system-templates'),
+    ]);
+    setItems(u); setSystemTpl(s);
   };
   useEffect(() => { load(); }, []);
 
@@ -42,8 +46,40 @@ export default function Templates() {
     await load();
   };
 
+  const cloneSystem = async (key) => {
+    try {
+      await api.post(`/system-templates/${key}/clone`);
+      toast.success('Șablon clonat în biblioteca dvs.');
+      await load();
+    } catch (err) { toast.error('Eroare clonare'); }
+  };
+
   return (
-    <AppShell title="Șabloane DOCX">
+    <AppShell title="Șabloane DOCX" subtitle="Biblioteca dvs. + șabloane legale de sistem">
+      {/* System templates */}
+      <div className="bg-black text-white p-6 mb-6" data-testid="system-templates-section">
+        <div className="flex items-start gap-4 mb-5">
+          <div className="w-10 h-10 bg-[#FFB300] text-black flex items-center justify-center shrink-0"><Sparkles className="w-5 h-5" /></div>
+          <div>
+            <div className="label text-[#FFB300]">// Șabloane legale de sistem</div>
+            <h2 className="text-xl font-semibold mt-1">Pre-încărcate pentru ingineria gazelor</h2>
+            <p className="text-xs text-gray-400 mt-1">Cerere racordare, Memoriu tehnic, Borderou documente, Adresă către OSD — gata de utilizare. Clonați-le în biblioteca dvs. și folosiți-le imediat.</p>
+          </div>
+        </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {systemTpl.map(t => (
+            <div key={t.key} className="bg-white text-black p-4 flex flex-col" data-testid={`sys-${t.key}`}>
+              <FileText className="w-5 h-5 mb-2 text-[#FFB300]" />
+              <h4 className="font-semibold text-sm mb-1">{t.name}</h4>
+              <div className="text-[10px] text-gray-500 mono mb-3">{t.placeholders?.length || 0} placeholder-e</div>
+              <button onClick={() => cloneSystem(t.key)} className="mt-auto outline-btn text-xs py-1.5 justify-center" data-testid={`clone-${t.key}`}>
+                <Copy className="w-3 h-3" /> Clonează
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="bg-white border border-gray-200 p-8 mb-8">
         <div className="grid md:grid-cols-2 gap-8 items-center">
           <div>
@@ -72,7 +108,7 @@ export default function Templates() {
 
       <div className="label mb-4">// Șabloanele mele ({items.length})</div>
       {items.length === 0 ? (
-        <div className="bg-white border border-gray-200 p-12 text-center text-sm text-gray-500">Niciun șablon încărcat.</div>
+        <div className="bg-white border border-gray-200 p-12 text-center text-sm text-gray-500">Niciun șablon încărcat. Începeți prin a clona unul din șabloanele de sistem de mai sus.</div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-gray-200 border border-gray-200" data-testid="templates-list">
           {items.map((t) => (

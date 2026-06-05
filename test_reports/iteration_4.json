@@ -1,0 +1,47 @@
+{
+  "summary": "V4.6 backend testing — 67/67 pytest pass (27 regression + 20 v4.5 + 20 new v4.6). Added /app/backend/tests/test_v46_features.py covering: GET /api/industries (5 industries; gas active + 4 coming_soon; 5 active gas subdomains), GET /api/system-templates (4 seeded templates with placeholders, is_system=true, no data_b64 leaked, industry filter returns 4), POST /api/system-templates/{key}/clone (creates user template with source_system_key + appears in /api/templates), Multi-project CRUD (list returns >=1 with single active flag, POST /api/projects creates+activates, /activate switches active, /archive hides from default list, include_archived=true exposes, /unarchive flips back, DELETE returns deleted=true and is 404 on retry, PUT /api/project updates the LAST-activated project), Developer auto-detection (register/login with dragosserban95@gmail.com → is_developer=true & plan='developer'; regular user is_developer=false), AI Developer endpoints (POST /api/dev/plan as dev returns mode='plan'+proposed_steps+diagnostic{rules,missing_capabilities}+validation_checklist; 403 for non-dev), GET /api/dev/safety-rules returns 9 rules for dev, 403 otherwise, PUT /api/qes/credentials with certsign returns ok+fields_saved=3, unknown provider → 400, GET /api/qes/credentials returns only {certsign:{fields_count:3}} without raw secret values.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "server.py", "issue": "DEVELOPER_EMAILS constant and _is_developer_email() are duplicated (defined at line 57 AND again at line 614). Harmless but should be deduped."},
+      {"endpoint": "/api/dev/plan", "issue": "When openai_api_key is omitted, route still runs fine but the diagnostic field 'next_safe_actions' is built unconditionally — fine, just note for spec."},
+      {"endpoint": "/api/projects DELETE", "issue": "Deleting the currently-active project re-activates the oldest non-archived project (good), but if NO non-archived projects remain the user has active_project_id=null, and a subsequent GET /api/project will auto-create 'Proiect implicit' — acceptable but undocumented."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_v46_features.py",
+    "/app/backend/tests/test_v45_features.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/v46_results.xml",
+    "/app/test_reports/pytest/full_v46_results.xml"
+  ],
+  "action_items": [
+    "(Cleanup) Remove duplicate DEVELOPER_EMAILS / _is_developer_email definition in server.py (lines 614-618 already declared at 57-61).",
+    "(Optional) Document the auto-recreate behavior of /api/project after deleting all projects — currently spawns 'Proiect implicit' silently.",
+    "(Optional) /api/auth/google/session still hard-codes is_developer=False; should call _is_developer_email(email) to match the email/password path (single sign-in source equivalence)."
+  ],
+  "critical_code_review_comments": [
+    "server.py: DEVELOPER_EMAILS and _is_developer_email() are declared twice (lines 57 and 614). Second declaration is dead. Remove.",
+    "/api/auth/google/session does NOT auto-detect developer accounts — only email/password register & login do. A Google sign-in by dragosserban95@gmail.com would yield is_developer=false until they also do an email-password login. Apply _is_developer_email() symmetrically.",
+    "/api/qes/credentials PUT does NOT validate credential field names against a per-provider schema — any dict is accepted. Provider 'certsign' should require {client_id, client_secret, endpoint_url}; consider rejecting unknown keys or missing required keys.",
+    "/api/qes/credentials GET returns fields_count but credentials are stored in plaintext under users.qes_credentials. For production these MUST be encrypted at rest (Fernet/KMS).",
+    "/api/dev/plan logs prompt[:300] but accepts arbitrarily long prompts (no Pydantic max_length on DevPlanRequest.prompt). Add Field(max_length=4000).",
+    "/api/projects POST: ProjectCreate accepts ANY industry/subdomain string — no validation against industries_module.INDUSTRIES. A typo creates orphan projects. Should validate with industries_module.get_industry()/is_active().",
+    "industries.py.get_industry() falls back to 'gas_engineering' on unknown id — silent default may mask bugs; should return None and let callers decide.",
+    "system_templates.seed_system_templates re-encodes & overwrites all template documents on every startup (full data_b64 rewrite) — wasteful. Use change-detection (hash compare) before update.",
+    "models.py User exposes qes_credentials in /auth/me response (it's whitelisted via _user_from_doc which only strips password_hash & gmail_app_password). Verify in next iteration that qes_credentials is also stripped — otherwise raw client_secret leaks to authenticated client.",
+    "_get_active_project is a 30-line function repeated indirectly across 6 routes — fine, but the project auto-creation on first GET /api/project has no lock; two parallel requests could create two 'Proiect implicit' rows (low risk single-tenant).",
+    "ai_developer._call_openai uses gpt-4o-mini which is fine, but no key redaction in error message — a bad key string could leak via 'external_llm_error' in response. Trap and replace with generic message."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_v46_features.py (NEW — 20 tests for industries, system-templates, multi-project CRUD, developer auto-detect, AI Developer, QES credentials)"
+  ],
+  "success_rate": {"backend": "100% (67/67 pytest — 27 regression + 20 v4.5 + 20 v4.6)", "frontend": "not tested (backend only)"},
+  "test_credentials": "Developer: dragosserban95@gmail.com / Test12345 (existing in DB; auto-upgraded on login). Regular users created per run as v46_{uuid8}@example.com / Pass1234 with gdpr_consent=true.",
+  "seed_data_creation": "Per run: 1 fresh v46 user, 1 cloned template, 3 projects (TEST_Proiect_2, TEST_ArchiveMe, TEST_Active) — left in DB. Plus prior modules' regression+v45 fixtures. v45 user is GDPR-deleted at end of its module; v46 user is NOT cleaned up.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Three pytest files: /app/backend/tests/backend_test.py (27 regression), /app/backend/tests/test_v45_features.py (20 v4.5), /app/backend/tests/test_v46_features.py (20 v4.6). Run all with `pytest /app/backend/tests/ -v`. v4.6 file loads frontend/.env via python-dotenv for REACT_APP_BACKEND_URL. Developer account 'dragosserban95@gmail.com' persists across runs — register returns 400 then login auto-upgrades. v4.6 module does NOT delete its user, so subsequent runs find the regular v46 user with retained qes_credentials & cloned templates (UUID-suffixed emails avoid collisions).",
+  "rca_of_the_issue": "N/A — no functional defects. All V4.6 acceptance criteria verified end-to-end."
+}

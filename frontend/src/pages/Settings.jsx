@@ -4,7 +4,72 @@ import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Mail, ShieldCheck, CreditCard, Check, AlertCircle, ExternalLink } from 'lucide-react';
+import { Mail, ShieldCheck, CreditCard, Check, AlertCircle, ExternalLink, Save } from 'lucide-react';
+
+const QES_FIELDS = {
+  certsign: [
+    { name: 'client_id', label: 'Client ID', type: 'text' },
+    { name: 'client_secret', label: 'Client Secret', type: 'password' },
+    { name: 'endpoint_url', label: 'Endpoint URL', type: 'text', placeholder: 'https://api.certsign.ro/sign/v1' },
+    { name: 'certificate_alias', label: 'Alias certificat alocat', type: 'text' },
+  ],
+  digisign: [
+    { name: 'client_id', label: 'Client ID OAuth2', type: 'text' },
+    { name: 'client_secret', label: 'Client Secret', type: 'password' },
+    { name: 'callback_url', label: 'Callback URL', type: 'text' },
+    { name: 'account_id', label: 'Account ID DigiSign', type: 'text' },
+  ],
+  transsped: [
+    { name: 'api_key', label: 'API Key', type: 'password' },
+    { name: 'endpoint_url', label: 'Endpoint URL', type: 'text' },
+    { name: 'user_id', label: 'User ID Trans Sped', type: 'text' },
+  ],
+};
+
+function QesCredentialsForm({ provider }) {
+  const [creds, setCreds] = useState({});
+  const [busy, setBusy] = useState(false);
+  const fields = QES_FIELDS[provider] || [];
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (Object.keys(creds).length === 0) { toast.error('Completați măcar un câmp'); return; }
+    setBusy(true);
+    try {
+      await api.put('/qes/credentials', { provider, credentials: creds });
+      toast.success('Credențiale QES salvate');
+      setCreds({});
+    } catch (err) { toast.error(err?.response?.data?.detail || 'Eroare'); }
+    finally { setBusy(false); }
+  };
+
+  if (fields.length === 0) return null;
+
+  return (
+    <details className="text-xs mb-3 bg-[#F9FAFB] border border-gray-200">
+      <summary className="cursor-pointer text-gray-700 font-semibold p-2.5">Completează credențialele API</summary>
+      <form onSubmit={submit} className="p-3 space-y-2.5 border-t border-gray-200" data-testid={`qes-creds-${provider}`}>
+        {fields.map(f => (
+          <div key={f.name}>
+            <label className="label block mb-0.5 text-[9px]">{f.label}</label>
+            <input
+              type={f.type}
+              placeholder={f.placeholder}
+              value={creds[f.name] || ''}
+              onChange={(e) => setCreds({ ...creds, [f.name]: e.target.value })}
+              className="w-full border border-gray-300 px-2 py-1.5 text-xs rounded-sm mono"
+              data-testid={`qes-${provider}-${f.name}`}
+            />
+          </div>
+        ))}
+        <button disabled={busy} className="amber-btn w-full text-xs py-1.5" data-testid={`qes-save-${provider}`}>
+          <Save className="w-3 h-3" /> {busy ? 'Se salvează...' : 'Salvează credențiale'}
+        </button>
+        <p className="text-[10px] text-gray-500">Datele sunt stocate criptate pe contul dvs. Nu sunt afișate niciodată după salvare.</p>
+      </form>
+    </details>
+  );
+}
 
 export default function Settings() {
   const { user, refresh } = useAuth();
@@ -157,7 +222,7 @@ export default function Settings() {
           <div className="w-10 h-10 bg-[#FFB300] text-black flex items-center justify-center shrink-0"><ShieldCheck className="w-5 h-5" /></div>
           <div className="flex-1">
             <h2 className="text-xl font-semibold tracking-tight">Furnizor semnătură electronică calificată (QES)</h2>
-            <p className="text-sm text-gray-600 mt-2">Pentru semnături conforme eIDAS de nivel <strong>calificat</strong> (QES) sunt necesare contracte cu prestatori autorizați. În prezent folosim semnătura locală PKCS#12 (Mock). Pentru activarea integrărilor reale, contactați furnizorul și completați credențialele.</p>
+            <p className="text-sm text-gray-600 mt-2">Pentru semnături conforme eIDAS de nivel <strong>calificat</strong> (QES) sunt necesare contracte cu prestatori autorizați. În prezent folosim semnătura locală PKCS#12 (Mock). Pentru activarea integrărilor reale, completați credențialele primite de la furnizor după semnarea contractului.</p>
           </div>
         </div>
 
@@ -182,13 +247,19 @@ export default function Settings() {
                     </ul>
                   </details>
                 )}
+
+                {/* Credentials form for real providers (non-mock) */}
+                {p.id !== 'mock' && (
+                  <QesCredentialsForm provider={p.id} />
+                )}
+
                 <button
                   onClick={() => saveProvider(p.id)}
-                  disabled={!isActive || isSelected}
-                  className={isSelected ? 'outline-btn w-full justify-center text-xs py-2 cursor-default' : 'amber-btn w-full text-xs py-2 disabled:opacity-40 disabled:cursor-not-allowed'}
+                  disabled={isSelected}
+                  className={isSelected ? 'outline-btn w-full justify-center text-xs py-2 cursor-default mt-2' : 'amber-btn w-full text-xs py-2 disabled:opacity-40 disabled:cursor-not-allowed mt-2'}
                   data-testid={`qes-select-${p.id}`}
                 >
-                  {isSelected ? '✓ Selectat' : (isActive ? 'Selectează' : 'Necesită activare')}
+                  {isSelected ? '✓ Selectat' : 'Selectează ca provider activ'}
                 </button>
               </div>
             );

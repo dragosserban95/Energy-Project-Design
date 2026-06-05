@@ -6,7 +6,7 @@ import base64
 import logging
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 
 from dotenv import load_dotenv
 
@@ -16,6 +16,7 @@ load_dotenv(ROOT_DIR / ".env")
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Form, Request, Response
 from fastapi.responses import StreamingResponse, JSONResponse
 from starlette.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 
 from db import db
 from models import (
@@ -37,6 +38,9 @@ import qes_provider
 import plans as plans_module
 import calc_engine
 import ai_assistant
+import ai_developer
+import industries as industries_module
+import system_templates
 import hashlib
 
 from emergentintegrations.payments.stripe.checkout import (
@@ -48,6 +52,13 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="StampDoc Romania API")
 api = APIRouter(prefix="/api")
+
+# Developer accounts — lifetime access, AI Developer panel enabled
+DEVELOPER_EMAILS = {"dragosserban95@gmail.com"}
+
+
+def _is_developer_email(email: str) -> bool:
+    return (email or "").lower() in DEVELOPER_EMAILS
 
 
 def _user_from_doc(doc: dict) -> User:
@@ -69,6 +80,7 @@ async def register(payload: UserRegisterV2):
     if not payload.gdpr_consent:
         raise HTTPException(status_code=400, detail="Trebuie să acceptați Politica de Confidențialitate și GDPR pentru a continua")
     user_id = new_id("usr_")
+    is_dev = _is_developer_email(payload.email)
     user_doc = {
         "user_id": user_id,
         "email": payload.email.lower(),
@@ -76,11 +88,11 @@ async def register(payload: UserRegisterV2):
         "company": payload.company,
         "picture": None,
         "auth_provider": "email",
-        "plan": plans_module.DEFAULT_PLAN,
+        "plan": "developer" if is_dev else plans_module.DEFAULT_PLAN,
         "plan_renews_at": None,
         "gdpr_consent": True,
         "gdpr_consent_at": datetime.now(timezone.utc).isoformat(),
-        "is_developer": False,
+        "is_developer": is_dev,
         "password_hash": hash_password(payload.password),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -100,6 +112,11 @@ async def login(payload: UserLogin):
         raise HTTPException(status_code=401, detail="Credențiale invalide")
     if not verify_password(payload.password, user_doc["password_hash"]):
         raise HTTPException(status_code=401, detail="Credențiale invalide")
+    # Auto-upgrade developer accounts
+    if _is_developer_email(user_doc.get("email", "")) and not user_doc.get("is_developer"):
+        await db.users.update_one({"user_id": user_doc["user_id"]}, {"$set": {"is_developer": True, "plan": "developer"}})
+        user_doc["is_developer"] = True
+        user_doc["plan"] = "developer"
     await db.action_logs.insert_one({
         "log_id": new_id("log_"), "user_id": user_doc["user_id"], "action": "login",
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -594,27 +611,57 @@ async def stripe_webhook(request: Request):
 
 
 # ====================== PROJECTS ======================
-async def _get_or_create_default_project(user_id: str) -> dict:
-    """Each user starts with one default project. Return it (create if needed). Strips _id."""
-    proj = await db.projects.find_one({"user_id": user_id}, sort=[("created_at", 1)])
+DEVELOPER_EMAILS = {"dragosserban95@gmail.com"}
+
+
+def _is_developer_email(email: str) -> bool:
+    return (email or "").lower() in DEVELOPER_EMAILS
+
+
+async def _get_active_project(user_id: str) -> dict:
+    """Return active project for user, creating one if none exist."""
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0, "active_project_id": 1})
+    active_id = (user_doc or {}).get("active_project_id")
+    if active_id:
+        proj = await db.projects.find_one({"project_id": active_id, "user_id": user_id})
+        if proj:
+            proj.pop("_id", None)
+            return proj
+    # fallback: first non-archived
+    proj = await db.projects.find_one({"user_id": user_id, "archived": {"$ne": True}}, sort=[("created_at", 1)])
     if proj:
         proj.pop("_id", None)
+        await db.users.update_one({"user_id": user_id}, {"$set": {"active_project_id": proj["project_id"]}})
         return proj
+    # create default
+    return await _create_project_doc(user_id, name="Proiect implicit")
+
+
+async def _create_project_doc(user_id: str, name: str = "Proiect nou", description: str = "", industry: str = None, subdomain: str = None) -> dict:
     now = datetime.now(timezone.utc).isoformat()
     proj_id = new_id("prj_")
     doc = {
         "project_id": proj_id, "user_id": user_id,
+        "name": name, "description": description,
+        "industry": industry or industries_module.DEFAULT_INDUSTRY,
+        "subdomain": subdomain or industries_module.DEFAULT_SUBDOMAIN,
         "beneficiar": "", "adresa_lucrare": "", "localitate": "", "judet": "",
         "telefon": "", "email": "", "osd": "", "tip_lucrare": "",
         "numar_contract": "", "data_contract": "", "proiectant": "",
         "executant": "", "verificator_vgd": "", "responsabil_rte": "",
         "observatii": "",
         "completion": 0.0, "technical_data": {}, "calc_results": {},
+        "archived": False,
         "created_at": now, "updated_at": now,
     }
     await db.projects.insert_one(doc)
+    await db.users.update_one({"user_id": user_id}, {"$set": {"active_project_id": proj_id}})
     doc.pop("_id", None)
     return doc
+
+
+# Backwards-compat name
+_get_or_create_default_project = _get_active_project
 
 
 REQUIRED_PROJECT_FIELDS = ["beneficiar", "adresa_lucrare", "localitate", "judet", "telefon", "email", "osd", "tip_lucrare", "numar_contract", "data_contract", "proiectant", "executant", "verificator_vgd", "responsabil_rte"]
@@ -696,6 +743,76 @@ async def project_placeholders(user: User = Depends(get_current_user)):
         placeholders[k] = str(r.get("value") or "")
     placeholders["data_document"] = datetime.now(timezone.utc).strftime("%d.%m.%Y")
     return placeholders
+
+
+# Multi-project CRUD
+class ProjectCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    description: Optional[str] = ""
+    industry: Optional[str] = industries_module.DEFAULT_INDUSTRY
+    subdomain: Optional[str] = industries_module.DEFAULT_SUBDOMAIN
+
+
+@api.get("/projects")
+async def list_projects(include_archived: bool = False, user: User = Depends(get_current_user)):
+    q = {"user_id": user.user_id}
+    if not include_archived:
+        q["archived"] = {"$ne": True}
+    cursor = db.projects.find(q, {"_id": 0, "technical_data": 0, "calc_results": 0}).sort("created_at", -1)
+    items = await cursor.to_list(500)
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "active_project_id": 1})
+    active_id = (user_doc or {}).get("active_project_id")
+    for p in items:
+        p["completion"] = _completion(p)
+        p["active"] = p["project_id"] == active_id
+    return items
+
+
+@api.post("/projects")
+async def create_project(payload: ProjectCreate, user: User = Depends(get_current_user)):
+    doc = await _create_project_doc(user.user_id, name=payload.name, description=payload.description or "",
+                                    industry=payload.industry, subdomain=payload.subdomain)
+    return doc
+
+
+@api.post("/projects/{project_id}/activate")
+async def activate_project(project_id: str, user: User = Depends(get_current_user)):
+    proj = await db.projects.find_one({"project_id": project_id, "user_id": user.user_id}, {"_id": 0})
+    if not proj:
+        raise HTTPException(status_code=404, detail="Proiect negăsit")
+    await db.users.update_one({"user_id": user.user_id}, {"$set": {"active_project_id": project_id}})
+    return {"active_project_id": project_id}
+
+
+@api.post("/projects/{project_id}/archive")
+async def archive_project(project_id: str, user: User = Depends(get_current_user)):
+    res = await db.projects.update_one({"project_id": project_id, "user_id": user.user_id}, {"$set": {"archived": True}})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Proiect negăsit")
+    return {"archived": True}
+
+
+@api.post("/projects/{project_id}/unarchive")
+async def unarchive_project(project_id: str, user: User = Depends(get_current_user)):
+    res = await db.projects.update_one({"project_id": project_id, "user_id": user.user_id}, {"$set": {"archived": False}})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Proiect negăsit")
+    return {"archived": False}
+
+
+@api.delete("/projects/{project_id}")
+async def delete_project(project_id: str, user: User = Depends(get_current_user)):
+    res = await db.projects.delete_one({"project_id": project_id, "user_id": user.user_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Proiect negăsit")
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "active_project_id": 1})
+    if (user_doc or {}).get("active_project_id") == project_id:
+        next_proj = await db.projects.find_one({"user_id": user.user_id, "archived": {"$ne": True}}, sort=[("created_at", 1)])
+        await db.users.update_one(
+            {"user_id": user.user_id},
+            {"$set": {"active_project_id": next_proj["project_id"] if next_proj else None}},
+        )
+    return {"deleted": True}
 
 
 # ====================== CERTIFICATIONS ======================
@@ -902,6 +1019,112 @@ async def gdpr_delete_account(user: User = Depends(get_current_user)):
     return {"deleted": True}
 
 
+# ====================== INDUSTRIES & SUBDOMAINS ======================
+@api.get("/industries")
+async def get_industries():
+    return industries_module.list_industries()
+
+
+# ====================== SYSTEM TEMPLATES ======================
+@api.get("/system-templates")
+async def list_system_templates(industry: Optional[str] = None, subdomain: Optional[str] = None):
+    q = {}
+    if industry:
+        q["industry"] = industry
+    if subdomain:
+        q["subdomain"] = subdomain
+    cursor = db.system_templates.find(q, {"_id": 0, "data_b64": 0}).sort("name", 1)
+    return await cursor.to_list(100)
+
+
+@api.post("/system-templates/{key}/clone")
+async def clone_system_template(key: str, user: User = Depends(get_current_user)):
+    """Clone a system template into the user's library so they can use it."""
+    sys_t = await db.system_templates.find_one({"key": key})
+    if not sys_t:
+        raise HTTPException(status_code=404, detail="Șablon de sistem negăsit")
+    template_id = new_id("tpl_")
+    doc = {
+        "template_id": template_id,
+        "user_id": user.user_id,
+        "name": sys_t["name"],
+        "placeholders": sys_t.get("placeholders", []),
+        "size_bytes": sys_t.get("size_bytes", 0),
+        "data_b64": sys_t["data_b64"],
+        "source_system_key": key,
+        "industry": sys_t.get("industry"),
+        "subdomain": sys_t.get("subdomain"),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.templates.insert_one(doc)
+    return {k: v for k, v in doc.items() if k not in ("_id", "data_b64")}
+
+
+# ====================== QES CREDENTIALS ======================
+class QESCredsIn(BaseModel):
+    provider: str
+    credentials: Dict[str, Any]
+
+
+@api.put("/qes/credentials")
+async def save_qes_credentials(payload: QESCredsIn, user: User = Depends(get_current_user)):
+    if payload.provider not in qes_provider.PROVIDERS:
+        raise HTTPException(status_code=400, detail="Provider necunoscut")
+    # Store under user.qes_credentials[provider]
+    existing = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "qes_credentials": 1})
+    creds_all = (existing or {}).get("qes_credentials") or {}
+    creds_all[payload.provider] = payload.credentials
+    await db.users.update_one({"user_id": user.user_id}, {"$set": {"qes_credentials": creds_all, "qes_provider": payload.provider}})
+    return {"ok": True, "provider": payload.provider, "fields_saved": list(payload.credentials.keys())}
+
+
+@api.get("/qes/credentials")
+async def get_qes_credentials(user: User = Depends(get_current_user)):
+    """Returns which providers have credentials saved (NOT the values)."""
+    doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "qes_credentials": 1})
+    creds_all = (doc or {}).get("qes_credentials") or {}
+    return {pid: {"fields_count": len(c or {})} for pid, c in creds_all.items()}
+
+
+# ====================== AI DEVELOPER (developer-only) ======================
+class DevPlanRequest(BaseModel):
+    prompt: str
+    openai_api_key: Optional[str] = None
+
+
+def _ensure_developer(user: User):
+    if not user.is_developer:
+        raise HTTPException(status_code=403, detail="Acces interzis. Doar contul Developer poate accesa această funcție.")
+
+
+@api.post("/dev/plan")
+async def dev_plan(payload: DevPlanRequest, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    has_qes = bool((await db.users.find_one({"user_id": user.user_id}, {"qes_credentials": 1}) or {}).get("qes_credentials"))
+    has_gmail = bool((await db.users.find_one({"user_id": user.user_id}, {"gmail_user": 1, "gmail_app_password": 1}) or {}).get("gmail_app_password"))
+    has_system_tpl = (await db.system_templates.count_documents({})) > 0
+    stripe_key = os.environ.get("STRIPE_API_KEY", "")
+    repo_summary = {
+        "has_stripe_live_key": stripe_key.startswith("sk_live_"),
+        "has_qes_credentials": has_qes,
+        "has_gmail_for_user": has_gmail,
+        "has_system_templates": has_system_tpl,
+    }
+    result = await ai_developer.plan(payload.prompt, repo_summary, openai_api_key=payload.openai_api_key)
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user.user_id, "action": "dev.plan",
+        "meta": {"prompt": payload.prompt[:300], "external": result.get("external_llm_used")},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return result
+
+
+@api.get("/dev/safety-rules")
+async def dev_safety_rules(user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    return {"rules": ai_developer.SAFETY_RULES}
+
+
 # ====================== ROOT ======================
 @api.get("/")
 async def root():
@@ -917,6 +1140,20 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
+
+
+@app.on_event("startup")
+async def on_startup():
+    try:
+        await system_templates.seed_system_templates(db)
+        logger.info("System templates seeded.")
+        # Upgrade developer accounts on every startup
+        await db.users.update_many(
+            {"email": {"$in": list(DEVELOPER_EMAILS)}},
+            {"$set": {"is_developer": True, "plan": "developer"}},
+        )
+    except Exception as e:
+        logger.warning(f"Startup seed failed: {e}")
 
 
 @app.on_event("shutdown")
