@@ -14,8 +14,8 @@ assert _url, "REACT_APP_BACKEND_URL must be set"
 BASE_URL = _url.rstrip("/")
 API = f"{BASE_URL}/api"
 
-DEVELOPER_EMAIL = "dragosserban95@gmail.com"
-DEVELOPER_PASSWORD = "Test12345"
+DEVELOPER_EMAIL = os.environ.get("DEVELOPER_TEST_EMAIL", "dragosserban95@gmail.com")
+DEVELOPER_PASSWORD = os.environ.get("DEVELOPER_TEST_PASSWORD", "Test12345")
 
 
 # ---------- Fixtures ----------

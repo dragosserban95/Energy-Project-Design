@@ -11,7 +11,9 @@ export default function ActiveProjectBar() {
     try {
       const { data } = await api.get('/projects?include_archived=false');
       setItems(data);
-    } catch (_) {}
+    } catch (err) {
+      console.error('Failed to load projects:', err);
+    }
   }, []);
 
   useEffect(() => {
@@ -28,7 +30,9 @@ export default function ActiveProjectBar() {
       await api.post(`/projects/${id}/activate`);
       window.dispatchEvent(new Event('active-project-changed'));
       setOpen(false);
-    } catch (_) {}
+    } catch (err) {
+      console.error('Failed to activate project:', err);
+    }
   };
 
   return (

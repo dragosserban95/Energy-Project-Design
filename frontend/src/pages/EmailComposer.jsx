@@ -48,7 +48,9 @@ export default function EmailComposer() {
           api.get('/users/me/email-config'),
         ]);
         setProject(p); setPlaceholders(ph); setDocs(dd); setEmailConfig(ec);
-      } catch (_) {}
+      } catch (err) {
+        console.error('Email composer load failed:', err);
+      }
     })();
   }, []);
 

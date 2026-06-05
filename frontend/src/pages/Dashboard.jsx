@@ -23,7 +23,9 @@ export default function Dashboard() {
         setCounts({ templates: t.data.length, stamps: s.data.length, certs: c.data.length, docs: d.data.length });
         setRecent(d.data.slice(0, 5));
         setCompletion(p.data.completion || 0);
-      } catch (_) {}
+      } catch (err) {
+        console.error('Dashboard load failed:', err);
+      }
     })();
   }, []);
 
@@ -45,7 +47,9 @@ export default function Dashboard() {
         if (data.status === 'expired') {
           toast.error('Sesiunea de plată a expirat'); return;
         }
-      } catch (_) {}
+      } catch (err) {
+        console.error('Payment status check failed:', err);
+      }
       if (attempts < 6) setTimeout(poll, 2000);
     };
     poll();

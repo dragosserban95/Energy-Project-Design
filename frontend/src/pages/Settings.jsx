@@ -90,7 +90,9 @@ export default function Settings() {
         setConfigured(e.configured);
         setGmailUser(e.gmail_user || '');
         setProviders(p);
-      } catch (_) {}
+      } catch (err) {
+        console.error('Settings load failed:', err);
+      }
     })();
   }, []);
 
@@ -243,7 +245,7 @@ export default function Settings() {
                   <details className="text-xs mb-3">
                     <summary className="cursor-pointer text-gray-700 font-semibold">Ghid de activare</summary>
                     <ul className="mt-2 space-y-1 text-gray-600 list-decimal pl-4">
-                      {p.setup_guide.map((step, i) => <li key={i}>{step.replace(/^\d+\.\s*/, '')}</li>)}
+                      {p.setup_guide.map((step) => <li key={step}>{step.replace(/^\d+\.\s*/, '')}</li>)}
                     </ul>
                   </details>
                 )}

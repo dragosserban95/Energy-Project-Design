@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import AppShell from '../components/AppShell';
 import api from '../lib/api';
@@ -13,13 +13,17 @@ export default function Projects() {
   const [form, setForm] = useState({ name: '', description: '', industry: 'gas_engineering', subdomain: 'bransamente_gaz' });
   const [busy, setBusy] = useState(false);
 
-  const load = async () => {
-    const { data } = await api.get(`/projects?include_archived=${includeArchived}`);
-    setItems(data);
-  };
-  useEffect(() => { load(); }, [includeArchived]);
+  const load = useCallback(async () => {
+    try {
+      const { data } = await api.get(`/projects?include_archived=${includeArchived}`);
+      setItems(data);
+    } catch (err) {
+      console.error('Projects load failed:', err);
+    }
+  }, [includeArchived]);
+  useEffect(() => { load(); }, [load]);
   useEffect(() => {
-    api.get('/industries').then(({ data }) => setIndustries(data)).catch(() => {});
+    api.get('/industries').then(({ data }) => setIndustries(data)).catch((err) => console.error('Industries load failed:', err));
   }, []);
 
   const currentIndustry = industries.find(i => i.id === form.industry);

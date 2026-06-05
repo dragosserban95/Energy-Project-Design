@@ -14,7 +14,7 @@ export default function Pricing() {
   useEffect(() => {
     (async () => {
       try { const { data } = await api.get('/plans'); setPlans(data); }
-      catch (_) {}
+      catch (err) { console.error('Plans load failed:', err); }
     })();
   }, []);
 

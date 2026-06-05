@@ -116,7 +116,7 @@ export default function Developer() {
               <div>
                 <div className="label mb-2">// Pași propuși</div>
                 <ol className="text-sm space-y-1 list-decimal pl-5 text-gray-700">
-                  {(result.proposed_steps || []).map((s, i) => <li key={i}>{s}</li>)}
+                  {(result.proposed_steps || []).map((s, i) => <li key={`step-${i}-${s.slice(0,30)}`}>{s}</li>)}
                 </ol>
               </div>
 
@@ -130,7 +130,7 @@ export default function Developer() {
               <div>
                 <div className="label mb-2">// Checklist validare</div>
                 <ul className="text-sm space-y-1">
-                  {(result.validation_checklist || []).map((v, i) => <li key={i} className="flex items-start gap-2"><span className="text-gray-400">[ ]</span>{v}</li>)}
+                  {(result.validation_checklist || []).map((v, i) => <li key={`val-${i}-${v.slice(0,30)}`} className="flex items-start gap-2"><span className="text-gray-400">[ ]</span>{v}</li>)}
                 </ul>
               </div>
 
@@ -146,7 +146,7 @@ export default function Developer() {
           <div className="bg-white border border-gray-200 p-5">
             <div className="label mb-3">// Reguli de siguranță</div>
             <ul className="text-xs space-y-2 text-gray-700">
-              {safetyRules.map((r, i) => <li key={i} className="flex items-start gap-2"><span className="text-[#FFB300] mono">{String(i + 1).padStart(2, '0')}.</span>{r}</li>)}
+              {safetyRules.map((r, i) => <li key={`rule-${i}-${r.slice(0,30)}`} className="flex items-start gap-2"><span className="text-[#FFB300] mono">{String(i + 1).padStart(2, '0')}.</span>{r}</li>)}
             </ul>
           </div>
 

@@ -11,7 +11,11 @@ export function AuthProvider({ children }) {
     try {
       const { data } = await api.get('/auth/me');
       setUser(data);
-    } catch (_) {
+    } catch (err) {
+      // Not authenticated — fall through to null user. Log non-401 errors.
+      if (err?.response?.status && err.response.status !== 401) {
+        console.error('Auth check failed:', err);
+      }
       setUser(null);
     } finally {
       setLoading(false);
@@ -41,7 +45,7 @@ export function AuthProvider({ children }) {
     return data.user;
   };
   const logout = async () => {
-    try { await api.post('/auth/logout'); } catch (_) {}
+    try { await api.post('/auth/logout'); } catch (err) { console.warn('Logout API failed (proceeding anyway):', err); }
     localStorage.removeItem('auth_token');
     setUser(null);
   };

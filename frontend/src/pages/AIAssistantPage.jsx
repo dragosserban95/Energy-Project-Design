@@ -132,8 +132,8 @@ export default function AIAssistantPage() {
             <div className="text-xs text-gray-500">Niciun mesaj încă.</div>
           ) : (
             <ul className="space-y-3 text-sm">
-              {history.map((h, i) => (
-                <li key={i} className="border-b border-gray-100 pb-2 last:border-0">
+              {history.map((h) => (
+                <li key={h.at} className="border-b border-gray-100 pb-2 last:border-0">
                   <div className="font-medium text-sm truncate">{h.message}</div>
                   <div className="text-xs text-gray-500 mt-0.5">
                     {h.packet.intent ? <span className="mono">{h.packet.intent}</span> : <span className="text-gray-400">necunoscut</span>}
