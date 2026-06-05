@@ -32,7 +32,7 @@ DOC_TYPES = [
 PLANS: Dict[str, Dict] = {
     "basic": {
         "id": "basic", "name": "Basic", "label": "Introducere date",
-        "price_eur": 99, "currency": "eur", "currency_label": "EUR / lună",
+        "price_eur": 199, "currency": "eur", "currency_label": "EUR / lună",
         "tagline": "Pentru introducerea datelor de proiect.",
         "documents_per_month": 30,
         "features": [F_PROJECT, F_TECHNICAL, F_CALC],
@@ -43,7 +43,7 @@ PLANS: Dict[str, Dict] = {
     },
     "proiectant": {
         "id": "proiectant", "name": "Proiectant", "label": "Proiectare",
-        "price_eur": 149, "currency": "eur", "currency_label": "EUR / lună",
+        "price_eur": 249, "currency": "eur", "currency_label": "EUR / lună",
         "tagline": "Pentru biroul de proiectare.",
         "documents_per_month": 100,
         "features": [F_PROJECT, F_TECHNICAL, F_CALC, F_DOCS, F_STAMPS, F_EMAIL, F_CERT, F_VERIFY, F_EXPORT],
@@ -54,7 +54,7 @@ PLANS: Dict[str, Dict] = {
     },
     "executant": {
         "id": "executant", "name": "Executant", "label": "Execuție",
-        "price_eur": 149, "currency": "eur", "currency_label": "EUR / lună",
+        "price_eur": 249, "currency": "eur", "currency_label": "EUR / lună",
         "tagline": "Pentru firme de execuție lucrări.",
         "documents_per_month": 100,
         "features": [F_PROJECT, F_TECHNICAL, F_DOCS, F_STAMPS, F_EMAIL, F_CERT, F_VERIFY, F_EXPORT],
@@ -65,7 +65,7 @@ PLANS: Dict[str, Dict] = {
     },
     "avize": {
         "id": "avize", "name": "Avize", "label": "Avize / OSD",
-        "price_eur": 129, "currency": "eur", "currency_label": "EUR / lună",
+        "price_eur": 229, "currency": "eur", "currency_label": "EUR / lună",
         "tagline": "Pentru departamentul de avize și relația cu OSD.",
         "documents_per_month": 80,
         "features": [F_PROJECT, F_DOCS, F_EMAIL, F_VERIFY, F_EXPORT],
@@ -76,7 +76,7 @@ PLANS: Dict[str, Dict] = {
     },
     "ofertare": {
         "id": "ofertare", "name": "Ofertare", "label": "Ofertare",
-        "price_eur": 119, "currency": "eur", "currency_label": "EUR / lună",
+        "price_eur": 219, "currency": "eur", "currency_label": "EUR / lună",
         "tagline": "Pentru ofertarea către clienți.",
         "documents_per_month": 100,
         "features": [F_PROJECT, F_TECHNICAL, F_CALC, F_OFFER, F_EMAIL, F_EXPORT],
@@ -87,7 +87,7 @@ PLANS: Dict[str, Dict] = {
     },
     "contabilitate": {
         "id": "contabilitate", "name": "Contabilitate", "label": "Contabilitate",
-        "price_eur": 119, "currency": "eur", "currency_label": "EUR / lună",
+        "price_eur": 219, "currency": "eur", "currency_label": "EUR / lună",
         "tagline": "Pentru departamentul de contabilitate.",
         "documents_per_month": 100,
         "features": [F_PROJECT, F_ACCOUNT, F_EMAIL, F_EXPORT],
@@ -98,7 +98,7 @@ PLANS: Dict[str, Dict] = {
     },
     "vgd": {
         "id": "vgd", "name": "VGD", "label": "Verificator documentație",
-        "price_eur": 199, "currency": "eur", "currency_label": "EUR / lună",
+        "price_eur": 299, "currency": "eur", "currency_label": "EUR / lună",
         "tagline": "Pentru verificatorul de documentație.",
         "documents_per_month": 150,
         "features": [F_PROJECT, F_TECHNICAL, F_DOCS, F_STAMPS, F_EMAIL, F_CERT, F_VERIFY, F_EXPORT, F_AUDIT],
@@ -109,7 +109,7 @@ PLANS: Dict[str, Dict] = {
     },
     "rte": {
         "id": "rte", "name": "RTE", "label": "Responsabil tehnic execuție",
-        "price_eur": 199, "currency": "eur", "currency_label": "EUR / lună",
+        "price_eur": 299, "currency": "eur", "currency_label": "EUR / lună",
         "tagline": "Pentru responsabilul tehnic cu execuția.",
         "documents_per_month": 150,
         "features": [F_PROJECT, F_TECHNICAL, F_DOCS, F_STAMPS, F_EMAIL, F_CERT, F_VERIFY, F_EXPORT, F_AUDIT],
@@ -120,8 +120,8 @@ PLANS: Dict[str, Dict] = {
     },
     "societate": {
         "id": "societate", "name": "Societate", "label": "Societate completă",
-        "price_eur": 399, "currency": "eur", "currency_label": "EUR / lună",
-        "tagline": "Acces total — toate departamentele.",
+        "price_eur": 2500, "currency": "eur", "currency_label": "EUR / lună",
+        "tagline": "Acces total — toate departamentele, întreaga societate.",
         "documents_per_month": 1000,
         "features": [F_PROJECT, F_TECHNICAL, F_CALC, F_DOCS, F_STAMPS, F_EMAIL, F_CERT, F_VERIFY, F_EXPORT, F_AUDIT, F_AI, F_OFFER, F_ACCOUNT],
         "stamps_allowed": ["proiectant", "executant", "vgd", "rte", "societate"],

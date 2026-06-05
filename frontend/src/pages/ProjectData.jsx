@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import AppShell from '../components/AppShell';
 import api from '../lib/api';
 import { toast } from 'sonner';
-import { Save, AlertCircle, CheckCircle2, Copy } from 'lucide-react';
+import { Save, AlertCircle, CheckCircle2, Copy, FileDown } from 'lucide-react';
 
 const FIELDS = [
   { name: 'beneficiar', label: 'Beneficiar', placeholder: 'Nume client / firmă', required: true, col: 2 },
@@ -73,6 +73,21 @@ export default function ProjectData() {
     } catch (e) { toast.error('Eroare copiere'); }
   };
 
+  const exportPdf = async () => {
+    try {
+      const token = localStorage.getItem('auth_token') || '';
+      const url = `${process.env.REACT_APP_BACKEND_URL}/api/project/pdf`;
+      const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, credentials: 'include' });
+      if (!resp.ok) throw new Error('failed');
+      const blob = await resp.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `raport-${(project.name || 'proiect').replace(/\s+/g, '_')}.pdf`;
+      a.click();
+      toast.success('PDF exportat');
+    } catch (e) { toast.error('Eroare export PDF'); }
+  };
+
   return (
     <AppShell title="Date proiect" subtitle="Date generale despre lucrare, beneficiar și echipa autorizată">
       {/* Completion bar */}
@@ -93,7 +108,10 @@ export default function ProjectData() {
             )}
           </div>
         </div>
-        <button onClick={copyPlaceholders} className="outline-btn text-xs" data-testid="copy-placeholders-btn"><Copy className="w-3.5 h-3.5" /> Copiază placeholder-e</button>
+        <div className="flex flex-col gap-2">
+          <button onClick={copyPlaceholders} className="outline-btn text-xs" data-testid="copy-placeholders-btn"><Copy className="w-3.5 h-3.5" /> Copiază placeholder-e</button>
+          <button onClick={exportPdf} className="amber-btn text-xs py-2" data-testid="export-pdf-btn"><FileDown className="w-3.5 h-3.5" /> Export PDF raport</button>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-px bg-gray-200 border border-gray-200 mb-6">

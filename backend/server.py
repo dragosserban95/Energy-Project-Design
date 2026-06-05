@@ -41,6 +41,7 @@ import ai_assistant
 import ai_developer
 import industries as industries_module
 import system_templates
+import pdf_export
 import hashlib
 
 from emergentintegrations.payments.stripe.checkout import (
@@ -1124,7 +1125,10 @@ async def dev_plan(payload: DevPlanRequest, user: User = Depends(get_current_use
         "has_gmail_for_user": has_gmail,
         "has_system_templates": has_system_tpl,
     }
-    result = await ai_developer.plan(payload.prompt, repo_summary, openai_api_key=payload.openai_api_key)
+    result = await ai_developer.plan(
+        payload.prompt, repo_summary,
+        openai_api_key=payload.openai_api_key or os.environ.get("OPENAI_API_KEY"),
+    )
     await db.action_logs.insert_one({
         "log_id": new_id("log_"), "user_id": user.user_id, "action": "dev.plan",
         "meta": {"prompt": payload.prompt[:300], "external": result.get("external_llm_used")},
@@ -1190,6 +1194,136 @@ async def version_status(user: User = Depends(get_current_user)):
         "message": "Program versiune finală încheiat cu succes." if is_final else
                    f"Versiune în dezvoltare — {done}/{total} capabilități configurate.",
     }
+
+
+# ====================== PDF EXPORT ======================
+@api.get("/project/pdf")
+async def project_pdf(user: User = Depends(get_current_user)):
+    """Generate a styled A4 PDF report for the active project."""
+    proj = await _get_or_create_default_project(user.user_id)
+    # Build verification dict inline for the report (lightweight)
+    verification = await verify_documentation(user)
+    pdf_bytes = pdf_export.build_project_pdf(proj, calc_results=proj.get("calc_results"), verification=verification)
+    safe_name = (proj.get("name") or "proiect")
+    # Strip non-ASCII for HTTP Content-Disposition (latin-1 only)
+    safe_name = safe_name.encode("ascii", "ignore").decode("ascii").replace(" ", "_").replace("/", "_") or "proiect"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="raport_{safe_name}.pdf"'},
+    )
+
+
+# ====================== AI DEVELOPER CHAT (persistent, developer-only) ======================
+class DevChatMessage(BaseModel):
+    role: str  # 'user' | 'assistant'
+    content: str
+    created_at: Optional[str] = None
+
+
+class DevChatSend(BaseModel):
+    message: str
+    openai_api_key: Optional[str] = None
+    session_id: Optional[str] = None
+
+
+@api.get("/dev/chat/sessions")
+async def list_dev_chat_sessions(user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    cursor = db.dev_chat_sessions.find({"user_id": user.user_id}, {"_id": 0}).sort("updated_at", -1)
+    return await cursor.to_list(50)
+
+
+@api.get("/dev/chat/{session_id}")
+async def get_dev_chat(session_id: str, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    sess = await db.dev_chat_sessions.find_one({"session_id": session_id, "user_id": user.user_id}, {"_id": 0})
+    if not sess:
+        raise HTTPException(status_code=404, detail="Sesiune negăsită")
+    return sess
+
+
+@api.post("/dev/chat/send")
+async def send_dev_chat(payload: DevChatSend, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    now = datetime.now(timezone.utc).isoformat()
+
+    session_id = payload.session_id
+    if not session_id:
+        session_id = new_id("dch_")
+        await db.dev_chat_sessions.insert_one({
+            "session_id": session_id, "user_id": user.user_id,
+            "title": payload.message[:80],
+            "messages": [],
+            "created_at": now, "updated_at": now,
+        })
+
+    # Diagnostic context
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0}) or {}
+    repo_summary = {
+        "has_stripe_live_key": os.environ.get("STRIPE_API_KEY", "").startswith("sk_live_"),
+        "has_qes_credentials": bool(user_doc.get("qes_credentials")),
+        "has_gmail_for_user": bool(user_doc.get("gmail_app_password")),
+        "has_system_templates": (await db.system_templates.count_documents({})) > 0,
+    }
+    plan_result = await ai_developer.plan(
+        payload.message, repo_summary,
+        openai_api_key=payload.openai_api_key or os.environ.get("OPENAI_API_KEY"),
+    )
+    # Build a chat-style assistant reply (markdown-ish)
+    parts = [f"**Plan generat** (mode: `{plan_result.get('mode')}`)\n"]
+    diag = plan_result.get("diagnostic", {})
+    if diag.get("missing_capabilities"):
+        parts.append("**Capabilități lipsă:**")
+        for m in diag["missing_capabilities"]:
+            parts.append(f"- {m}")
+    else:
+        parts.append("✅ Nicio capabilitate critică lipsă.")
+    parts.append("\n**Pași propuși:**")
+    for i, s in enumerate(plan_result.get("proposed_steps", []), 1):
+        parts.append(f"{i}. {s}")
+    if plan_result.get("external_llm_advice"):
+        parts.append("\n**Sfat OpenAI:**")
+        parts.append(plan_result["external_llm_advice"])
+    parts.append("\n**Validare după aplicare:**")
+    for v in plan_result.get("validation_checklist", []):
+        parts.append(f"- [ ] {v}")
+    parts.append("\n_Plan Mode — confirmați aplicarea manuală cu agentul principal (Emergent / Claude / ChatGPT / Codex)._")
+
+    assistant_reply = "\n".join(parts)
+    messages_to_add = [
+        {"role": "user", "content": payload.message, "created_at": now},
+        {"role": "assistant", "content": assistant_reply, "created_at": datetime.now(timezone.utc).isoformat(),
+         "metadata": {"intent": plan_result.get("mode"), "external": plan_result.get("external_llm_used")}},
+    ]
+    await db.dev_chat_sessions.update_one(
+        {"session_id": session_id},
+        {"$push": {"messages": {"$each": messages_to_add}}, "$set": {"updated_at": now}},
+    )
+
+    sess = await db.dev_chat_sessions.find_one({"session_id": session_id}, {"_id": 0})
+    return sess
+
+
+@api.delete("/dev/chat/{session_id}")
+async def delete_dev_chat(session_id: str, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    await db.dev_chat_sessions.delete_one({"session_id": session_id, "user_id": user.user_id})
+    return {"deleted": True}
+
+
+# ====================== VISION / MEMORY ======================
+@api.get("/vision")
+async def get_vision(user: User = Depends(get_current_user)):
+    """Return the PRD / vision document so any AI can pick up context."""
+    vision_path = Path("/app/memory/PRD.md")
+    if not vision_path.exists():
+        return {"vision": "", "exists": False}
+    try:
+        content = vision_path.read_text(encoding="utf-8")
+        return {"vision": content, "exists": True, "size_bytes": len(content)}
+    except Exception as e:
+        return {"vision": "", "exists": False, "error": str(e)}
 
 
 # ====================== ROOT ======================

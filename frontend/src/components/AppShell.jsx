@@ -97,8 +97,11 @@ export default function AppShell({ children, title, subtitle }) {
           {user?.is_developer && (
             <div>
               <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.2em] text-[#FFB300]">// Intern</div>
-              <Link to="/developer" data-testid="nav-developer" className={`flex items-center gap-3 px-3 py-2 text-[13px] transition-colors rounded-sm ${location.pathname.startsWith('/developer') ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
-                <Wrench className="w-3.5 h-3.5 shrink-0" /><span className="flex-1">AI Developer</span>
+              <Link to="/developer" data-testid="nav-developer" className={`flex items-center gap-3 px-3 py-2 text-[13px] transition-colors rounded-sm ${location.pathname === '/developer' ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
+                <Wrench className="w-3.5 h-3.5 shrink-0" /><span className="flex-1">AI Developer Plan</span>
+              </Link>
+              <Link to="/developer/chat" data-testid="nav-developer-chat" className={`flex items-center gap-3 px-3 py-2 text-[13px] transition-colors rounded-sm ${location.pathname.startsWith('/developer/chat') ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
+                <Sparkles className="w-3.5 h-3.5 shrink-0" /><span className="flex-1">AI Developer Chat</span>
               </Link>
             </div>
           )}
