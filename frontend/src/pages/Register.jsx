@@ -8,13 +8,15 @@ export default function Register() {
   const { register } = useAuth();
   const nav = useNavigate();
   const [form, setForm] = useState({ name: '', company: '', email: '', password: '' });
+  const [gdpr, setGdpr] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    if (!gdpr) { toast.error('Trebuie să acceptați Politica de Confidențialitate și GDPR'); return; }
     setBusy(true);
     try {
-      await register(form);
+      await register({ ...form, gdpr_consent: true });
       toast.success('Cont creat cu succes');
       nav('/dashboard');
     } catch (err) {
@@ -86,6 +88,10 @@ export default function Register() {
               <input required type="password" data-testid="password-input" value={form.password} onChange={setF('password')} className="w-full border border-gray-300 bg-white px-4 py-3 text-sm rounded-sm focus:outline-none focus:border-[#FFB300] focus:ring-2 focus:ring-[#FFB300]/30" placeholder="••••••••" />
             </div>
             <button data-testid="register-submit" disabled={busy} className="amber-btn w-full disabled:opacity-50">{busy ? 'Se creează...' : 'Creează cont'}</button>
+            <label className="flex items-start gap-2 text-xs text-gray-600 cursor-pointer">
+              <input type="checkbox" checked={gdpr} onChange={(e) => setGdpr(e.target.checked)} className="mt-0.5 accent-[#FFB300]" data-testid="gdpr-consent" />
+              <span>Am citit și sunt de acord cu <Link to="/termeni" target="_blank" className="underline font-semibold">Termenii</Link>, <Link to="/confidentialitate" target="_blank" className="underline font-semibold">Politica de Confidențialitate</Link> și <Link to="/gdpr" target="_blank" className="underline font-semibold">prelucrarea datelor conform GDPR</Link>.</span>
+            </label>
           </form>
 
           <div className="mt-6 text-sm text-gray-500">

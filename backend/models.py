@@ -30,12 +30,94 @@ class User(BaseModel):
     company: Optional[str] = None
     picture: Optional[str] = None
     auth_provider: str = "email"  # 'email' | 'google'
-    plan: str = "free"  # free, pro, enterprise
+    plan: str = "basic"
     plan_renews_at: Optional[str] = None
     gmail_user: Optional[str] = None
     gmail_configured: bool = False
-    qes_provider: Optional[str] = None  # 'mock' | 'certsign' | 'digisign' | 'transsped'
+    qes_provider: Optional[str] = None
+    gdpr_consent: bool = False
+    gdpr_consent_at: Optional[str] = None
+    is_developer: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class UserRegisterV2(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=6)
+    name: str = Field(min_length=1, max_length=120)
+    company: Optional[str] = None
+    gdpr_consent: bool = False
+
+
+# ---- Project ----
+class ProjectIn(BaseModel):
+    beneficiar: Optional[str] = ""
+    adresa_lucrare: Optional[str] = ""
+    localitate: Optional[str] = ""
+    judet: Optional[str] = ""
+    telefon: Optional[str] = ""
+    email: Optional[str] = ""
+    osd: Optional[str] = ""
+    tip_lucrare: Optional[str] = ""
+    numar_contract: Optional[str] = ""
+    data_contract: Optional[str] = ""
+    proiectant: Optional[str] = ""
+    executant: Optional[str] = ""
+    verificator_vgd: Optional[str] = ""
+    responsabil_rte: Optional[str] = ""
+    observatii: Optional[str] = ""
+
+
+class Project(ProjectIn):
+    model_config = ConfigDict(extra="ignore")
+    project_id: str
+    user_id: str
+    completion: float = 0.0
+    technical_data: Dict[str, Any] = Field(default_factory=dict)
+    calc_results: Dict[str, Any] = Field(default_factory=dict)
+    created_at: str
+    updated_at: str
+
+
+class TechnicalDataIn(BaseModel):
+    debit_instalat: Optional[float] = None
+    presiune_regim: Optional[str] = ""
+    diametru_conducta: Optional[str] = ""
+    material_conducta: Optional[str] = ""
+    lungime_bransament: Optional[float] = None
+    punct_racordare: Optional[str] = ""
+    post_reglare: Optional[str] = ""
+    contor: Optional[str] = ""
+    categorie_consumator: Optional[str] = ""
+    traseu: Optional[str] = ""
+    observatii_tehnice: Optional[str] = ""
+    # overrides (manual) keyed by calc result name
+    overrides: Optional[Dict[str, Any]] = Field(default_factory=dict)
+
+
+# ---- Certifications ----
+class CertificationCreate(BaseModel):
+    role: str  # 'proiectant' | 'executant' | 'vgd' | 'rte'
+    signer_name: str
+    document_title: str
+    project_id: Optional[str] = None
+
+
+class Certification(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    cert_internal_id: str
+    user_id: str
+    role: str
+    signer_name: str
+    document_title: str
+    project_id: Optional[str] = None
+    hash: str
+    created_at: str
+
+
+# ---- AI assistant ----
+class AIQuery(BaseModel):
+    message: str
 
 
 class AuthResponse(BaseModel):

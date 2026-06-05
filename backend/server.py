@@ -19,10 +19,12 @@ from starlette.middleware.cors import CORSMiddleware
 
 from db import db
 from models import (
-    User, UserLogin, UserRegister, AuthResponse,
+    User, UserLogin, UserRegister, UserRegisterV2, AuthResponse,
     TemplateMeta, StampMeta, CertificateMeta,
     GenerateRequest, DocumentMeta, EmailSendRequest,
     CheckoutRequest, PaymentTransaction, new_id,
+    ProjectIn, Project, TechnicalDataIn,
+    CertificationCreate, Certification, AIQuery,
 )
 from auth import (
     hash_password, verify_password, create_jwt,
@@ -32,6 +34,10 @@ from docx_processor import extract_placeholders, replace_placeholders, insert_st
 from signing import parse_p12, sign_document
 from email_sender import send_email_with_attachment
 import qes_provider
+import plans as plans_module
+import calc_engine
+import ai_assistant
+import hashlib
 
 from emergentintegrations.payments.stripe.checkout import (
     StripeCheckout, CheckoutSessionRequest,
@@ -50,19 +56,18 @@ def _user_from_doc(doc: dict) -> User:
     d["gmail_configured"] = bool(doc.get("gmail_user") and doc.get("gmail_app_password"))
     return User(**d)
 
-# ----------- Pricing plans (server side, fixed amounts in RON) -----------
-PLANS = {
-    "pro": {"name": "Pro", "amount": 99.0, "currency": "ron", "documents_per_month": 200},
-    "enterprise": {"name": "Enterprise", "amount": 299.0, "currency": "ron", "documents_per_month": 2000},
-}
+# ----------- Pricing plans — see plans.py for catalog -----------
+PLANS = {p["id"]: {"name": p["name"], "amount": float(p["price_eur"]), "currency": p["currency"], "documents_per_month": p["documents_per_month"]} for p in plans_module.PLANS.values() if not p.get("internal")}
 
 
 # ====================== AUTH ======================
 @api.post("/auth/register", response_model=AuthResponse)
-async def register(payload: UserRegister):
+async def register(payload: UserRegisterV2):
     existing = await db.users.find_one({"email": payload.email.lower()}, {"_id": 0})
     if existing:
         raise HTTPException(status_code=400, detail="Email-ul este deja înregistrat")
+    if not payload.gdpr_consent:
+        raise HTTPException(status_code=400, detail="Trebuie să acceptați Politica de Confidențialitate și GDPR pentru a continua")
     user_id = new_id("usr_")
     user_doc = {
         "user_id": user_id,
@@ -71,15 +76,21 @@ async def register(payload: UserRegister):
         "company": payload.company,
         "picture": None,
         "auth_provider": "email",
-        "plan": "free",
+        "plan": plans_module.DEFAULT_PLAN,
         "plan_renews_at": None,
+        "gdpr_consent": True,
+        "gdpr_consent_at": datetime.now(timezone.utc).isoformat(),
+        "is_developer": False,
         "password_hash": hash_password(payload.password),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.users.insert_one(user_doc)
-    user_doc.pop("password_hash", None)
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user_id, "action": "register",
+        "meta": {"email": user_doc["email"]}, "created_at": user_doc["created_at"],
+    })
     token = create_jwt(user_id)
-    return AuthResponse(token=token, user=User(**user_doc))
+    return AuthResponse(token=token, user=_user_from_doc(user_doc))
 
 
 @api.post("/auth/login", response_model=AuthResponse)
@@ -89,10 +100,12 @@ async def login(payload: UserLogin):
         raise HTTPException(status_code=401, detail="Credențiale invalide")
     if not verify_password(payload.password, user_doc["password_hash"]):
         raise HTTPException(status_code=401, detail="Credențiale invalide")
-    user_doc.pop("_id", None)
-    user_doc.pop("password_hash", None)
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user_doc["user_id"], "action": "login",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
     token = create_jwt(user_doc["user_id"])
-    return AuthResponse(token=token, user=User(**user_doc))
+    return AuthResponse(token=token, user=_user_from_doc(user_doc))
 
 
 @api.post("/auth/google/session")
@@ -479,11 +492,8 @@ def _stripe_client(request: Request) -> StripeCheckout:
 
 
 @api.get("/plans")
-async def list_plans():
-    return {
-        "free": {"name": "Free", "amount": 0, "currency": "ron", "documents_per_month": 5},
-        **PLANS,
-    }
+async def list_plans_v2():
+    return plans_module.public_plans()
 
 
 @api.post("/payments/checkout")
@@ -580,10 +590,319 @@ async def stripe_webhook(request: Request):
     return {"received": True}
 
 
+# ====================== PROJECTS ======================
+async def _get_or_create_default_project(user_id: str) -> dict:
+    """Each user starts with one default project. Return it (create if needed). Strips _id."""
+    proj = await db.projects.find_one({"user_id": user_id}, sort=[("created_at", 1)])
+    if proj:
+        proj.pop("_id", None)
+        return proj
+    now = datetime.now(timezone.utc).isoformat()
+    proj_id = new_id("prj_")
+    doc = {
+        "project_id": proj_id, "user_id": user_id,
+        "beneficiar": "", "adresa_lucrare": "", "localitate": "", "judet": "",
+        "telefon": "", "email": "", "osd": "", "tip_lucrare": "",
+        "numar_contract": "", "data_contract": "", "proiectant": "",
+        "executant": "", "verificator_vgd": "", "responsabil_rte": "",
+        "observatii": "",
+        "completion": 0.0, "technical_data": {}, "calc_results": {},
+        "created_at": now, "updated_at": now,
+    }
+    await db.projects.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+REQUIRED_PROJECT_FIELDS = ["beneficiar", "adresa_lucrare", "localitate", "judet", "telefon", "email", "osd", "tip_lucrare", "numar_contract", "data_contract", "proiectant", "executant", "verificator_vgd", "responsabil_rte"]
+
+
+def _completion(proj: dict) -> float:
+    filled = sum(1 for f in REQUIRED_PROJECT_FIELDS if str(proj.get(f) or "").strip())
+    return round(100.0 * filled / len(REQUIRED_PROJECT_FIELDS), 1)
+
+
+def _clean_project(proj: dict) -> dict:
+    return {k: v for k, v in proj.items() if k != "_id"}
+
+
+@api.get("/project")
+async def get_project(user: User = Depends(get_current_user)):
+    proj = await _get_or_create_default_project(user.user_id)
+    proj["completion"] = _completion(proj)
+    return _clean_project(proj)
+
+
+@api.put("/project")
+async def update_project(payload: ProjectIn, user: User = Depends(get_current_user)):
+    proj = await _get_or_create_default_project(user.user_id)
+    updates = payload.model_dump(exclude_none=False)
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    merged = {**proj, **updates}
+    updates["completion"] = _completion(merged)
+    await db.projects.update_one({"project_id": proj["project_id"]}, {"$set": updates})
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user.user_id, "action": "project.update",
+        "created_at": updates["updated_at"],
+    })
+    proj = await db.projects.find_one({"project_id": proj["project_id"]})
+    return _clean_project(proj)
+
+
+@api.put("/project/technical")
+async def update_technical(payload: TechnicalDataIn, user: User = Depends(get_current_user)):
+    proj = await _get_or_create_default_project(user.user_id)
+    td = payload.model_dump()
+    overrides = td.pop("overrides", {}) or {}
+    # Compute calculations
+    results = calc_engine.calculate(td)
+    # Apply overrides
+    for k, v in overrides.items():
+        if k in results and v not in (None, ""):
+            results[k] = {**results[k], "value": v, "status": "override", "explanation": "Valoare suprascrisă manual de utilizator."}
+    now = datetime.now(timezone.utc).isoformat()
+    await db.projects.update_one(
+        {"project_id": proj["project_id"]},
+        {"$set": {"technical_data": td, "calc_results": results, "updated_at": now}},
+    )
+    return {"technical_data": td, "calc_results": results}
+
+
+@api.post("/project/recalculate")
+async def recalc(user: User = Depends(get_current_user)):
+    proj = await _get_or_create_default_project(user.user_id)
+    td = proj.get("technical_data") or {}
+    results = calc_engine.calculate(td)
+    await db.projects.update_one({"project_id": proj["project_id"]}, {"$set": {"calc_results": results}})
+    return {"calc_results": results}
+
+
+@api.get("/project/placeholders")
+async def project_placeholders(user: User = Depends(get_current_user)):
+    """Return all resolved placeholders <name>: value for inserting into documents."""
+    proj = await _get_or_create_default_project(user.user_id)
+    td = proj.get("technical_data") or {}
+    calc = proj.get("calc_results") or {}
+    placeholders = {}
+    for k in REQUIRED_PROJECT_FIELDS + ["observatii"]:
+        placeholders[k] = str(proj.get(k) or "")
+    for k, v in td.items():
+        if not isinstance(v, dict):
+            placeholders[k] = str(v) if v is not None else ""
+    for k, r in calc.items():
+        placeholders[k] = str(r.get("value") or "")
+    placeholders["data_document"] = datetime.now(timezone.utc).strftime("%d.%m.%Y")
+    return placeholders
+
+
+# ====================== CERTIFICATIONS ======================
+@api.post("/certifications", response_model=Certification)
+async def create_certification(payload: CertificationCreate, user: User = Depends(get_current_user)):
+    if payload.role not in ["proiectant", "executant", "vgd", "rte", "societate"]:
+        raise HTTPException(status_code=400, detail="Rol invalid")
+    now = datetime.now(timezone.utc).isoformat()
+    cid = new_id("cert_")
+    payload_str = f"{user.user_id}|{payload.role}|{payload.signer_name}|{payload.document_title}|{now}"
+    h = hashlib.sha256(payload_str.encode("utf-8")).hexdigest()
+    doc = {
+        "cert_internal_id": cid,
+        "user_id": user.user_id,
+        "role": payload.role,
+        "signer_name": payload.signer_name,
+        "document_title": payload.document_title,
+        "project_id": payload.project_id,
+        "hash": h,
+        "created_at": now,
+    }
+    await db.certifications_internal.insert_one(doc)
+    return Certification(**doc)
+
+
+@api.get("/certifications", response_model=List[Certification])
+async def list_certifications(user: User = Depends(get_current_user)):
+    cursor = db.certifications_internal.find({"user_id": user.user_id}, {"_id": 0}).sort("created_at", -1)
+    docs = await cursor.to_list(500)
+    return [Certification(**d) for d in docs]
+
+
+# ====================== AI ASSISTANT ======================
+@api.post("/ai/parse")
+async def ai_parse(payload: AIQuery, user: User = Depends(get_current_user)):
+    packet = ai_assistant.parse(payload.message)
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user.user_id, "action": "ai.parse",
+        "meta": {"message": payload.message[:200], "intent": packet.get("intent")},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return packet
+
+
+# ====================== VERIFICATION ======================
+@api.get("/verification")
+async def verify_documentation(user: User = Depends(get_current_user)):
+    proj = await _get_or_create_default_project(user.user_id)
+    td = proj.get("technical_data") or {}
+    calc = proj.get("calc_results") or {}
+
+    tpl_count = await db.templates.count_documents({"user_id": user.user_id})
+    doc_count = await db.documents.count_documents({"user_id": user.user_id})
+    stamp_count = await db.stamps.count_documents({"user_id": user.user_id})
+    cert_count = await db.certifications_internal.count_documents({"user_id": user.user_id})
+
+    plan_cfg = plans_module.get_plan(user.plan)
+    checks = []
+
+    proj_completion = _completion(proj)
+    checks.append({
+        "key": "project_data", "label": "Date proiect",
+        "status": "ok" if proj_completion == 100 else ("warning" if proj_completion >= 50 else "missing"),
+        "score": proj_completion, "severity": "high",
+        "detail": f"Completare: {proj_completion}%. Câmpuri lipsă: " + (", ".join([f for f in REQUIRED_PROJECT_FIELDS if not str(proj.get(f) or '').strip()]) or "niciun"),
+        "fix_url": "/proiect",
+    })
+
+    tech_req = ["debit_instalat", "presiune_regim", "diametru_conducta", "material_conducta", "lungime_bransament"]
+    tech_filled = sum(1 for f in tech_req if td.get(f) not in (None, "", 0))
+    tech_score = round(100.0 * tech_filled / len(tech_req), 1)
+    checks.append({
+        "key": "technical_data", "label": "Date tehnice",
+        "status": "ok" if tech_score == 100 else ("warning" if tech_score >= 50 else "missing"),
+        "score": tech_score, "severity": "high",
+        "detail": f"Completare: {tech_score}%.",
+        "fix_url": "/tehnice",
+    })
+
+    calc_status = "ok" if calc and any(r.get("status") == "ok" for r in calc.values()) else "missing"
+    checks.append({
+        "key": "smart_calc", "label": "Calcul inteligent",
+        "status": calc_status, "score": 100 if calc_status == "ok" else 0,
+        "severity": "medium",
+        "detail": "Rezultatele calculului sunt disponibile." if calc_status == "ok" else "Calculul nu a fost rulat.",
+        "fix_url": "/calcul",
+    })
+
+    checks.append({
+        "key": "templates", "label": "Șabloane încărcate",
+        "status": "ok" if tpl_count > 0 else "missing",
+        "score": 100 if tpl_count > 0 else 0, "severity": "medium",
+        "detail": f"{tpl_count} șabloane disponibile.",
+        "fix_url": "/templates",
+    })
+
+    checks.append({
+        "key": "documents", "label": "Documente generate",
+        "status": "ok" if doc_count > 0 else "warning",
+        "score": 100 if doc_count > 0 else 0, "severity": "low",
+        "detail": f"{doc_count} documente.",
+        "fix_url": "/documents",
+    })
+
+    checks.append({
+        "key": "stamps", "label": "Ștampile autorizate",
+        "status": "ok" if stamp_count > 0 else "warning",
+        "score": 100 if stamp_count > 0 else 0, "severity": "medium",
+        "detail": f"{stamp_count} ștampile.",
+        "fix_url": "/stamps",
+    })
+
+    checks.append({
+        "key": "certifications", "label": "Certificări interne (VGD/RTE)",
+        "status": "ok" if cert_count > 0 else "warning",
+        "score": 100 if cert_count > 0 else 0, "severity": "medium",
+        "detail": f"{cert_count} certificări înregistrate.",
+        "fix_url": "/certificari",
+    })
+
+    checks.append({
+        "key": "plan", "label": "Plan utilizator",
+        "status": "ok" if user.plan != "basic" else "warning",
+        "score": 100 if plan_cfg.get("export_allowed") else 50,
+        "severity": "low",
+        "detail": f"Plan curent: {plan_cfg['name']} ({plan_cfg['label']}). Export: " + ("permis" if plan_cfg.get("export_allowed") else "interzis"),
+        "fix_url": "/pricing",
+    })
+
+    overall = round(sum(c["score"] for c in checks) / max(1, len(checks)), 1)
+    return {
+        "overall_score": overall,
+        "checks": checks,
+        "summary": {
+            "ok": sum(1 for c in checks if c["status"] == "ok"),
+            "warning": sum(1 for c in checks if c["status"] == "warning"),
+            "missing": sum(1 for c in checks if c["status"] == "missing"),
+        },
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ====================== AUDIT ======================
+APP_PAGES = [
+    {"id": "panou", "label": "Panou principal", "route": "/dashboard", "fields": [], "required_handlers": ["fetch_stats"]},
+    {"id": "proiect", "label": "Date proiect", "route": "/proiect", "fields": REQUIRED_PROJECT_FIELDS, "required_handlers": ["save", "validate"]},
+    {"id": "tehnice", "label": "Date tehnice", "route": "/tehnice", "fields": ["debit_instalat", "presiune_regim", "diametru_conducta", "material_conducta", "lungime_bransament"], "required_handlers": ["save"]},
+    {"id": "calcul", "label": "Calcul inteligent", "route": "/calcul", "fields": [], "required_handlers": ["recalculate", "copy_result"]},
+    {"id": "templates", "label": "Șabloane", "route": "/templates", "fields": [], "required_handlers": ["upload", "delete"]},
+    {"id": "documents", "label": "Documente", "route": "/documents", "fields": [], "required_handlers": ["download", "delete", "email"]},
+    {"id": "stamps", "label": "Ștampile", "route": "/stamps", "fields": [], "required_handlers": ["upload", "delete"]},
+    {"id": "certificari", "label": "Certificări interne", "route": "/certificari", "fields": ["role", "signer_name", "document_title"], "required_handlers": ["create"]},
+    {"id": "email", "label": "Email-uri", "route": "/email", "fields": ["recipients", "subject", "body"], "required_handlers": ["send"]},
+    {"id": "verifica", "label": "Verifică documentație", "route": "/verifica", "fields": [], "required_handlers": ["run", "export"]},
+    {"id": "pricing", "label": "Planuri departamente", "route": "/pricing", "fields": [], "required_handlers": ["checkout"]},
+    {"id": "settings", "label": "Setări", "route": "/settings", "fields": ["gmail_user", "gmail_app_password"], "required_handlers": ["save"]},
+    {"id": "ai", "label": "AI Assistant", "route": "/ai", "fields": ["message"], "required_handlers": ["parse"]},
+    {"id": "audit", "label": "Audit", "route": "/audit", "fields": [], "required_handlers": ["run"]},
+]
+
+
+@api.get("/audit")
+async def run_audit(user: User = Depends(get_current_user)):
+    plan_cfg = plans_module.get_plan(user.plan)
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "user": {"user_id": user.user_id, "plan": user.plan, "is_developer": user.is_developer},
+        "pages": [
+            {**p, "implemented": True, "plan_access": p["id"] not in ["developer"] or user.is_developer}
+            for p in APP_PAGES
+        ],
+        "plan_features": plan_cfg.get("features", []),
+    }
+
+
+# ====================== GDPR ======================
+@api.get("/gdpr/export")
+async def gdpr_export(user: User = Depends(get_current_user)):
+    """Export all user data — GDPR right to portability."""
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "password_hash": 0, "gmail_app_password": 0})
+    projects = await db.projects.find({"user_id": user.user_id}, {"_id": 0}).to_list(100)
+    documents = await db.documents.find({"user_id": user.user_id}, {"_id": 0, "data_b64": 0, "signature_b64": 0}).to_list(1000)
+    templates = await db.templates.find({"user_id": user.user_id}, {"_id": 0, "data_b64": 0}).to_list(500)
+    stamps = await db.stamps.find({"user_id": user.user_id}, {"_id": 0, "data_b64": 0}).to_list(500)
+    certs_internal = await db.certifications_internal.find({"user_id": user.user_id}, {"_id": 0}).to_list(500)
+    logs = await db.action_logs.find({"user_id": user.user_id}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return {
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "user": user_doc, "projects": projects, "documents": documents,
+        "templates": templates, "stamps": stamps,
+        "certifications_internal": certs_internal, "action_logs": logs,
+    }
+
+
+@api.delete("/gdpr/account")
+async def gdpr_delete_account(user: User = Depends(get_current_user)):
+    """Delete all user data permanently (GDPR right to be forgotten)."""
+    uid = user.user_id
+    for coll in ["projects", "documents", "templates", "stamps", "certificates",
+                 "certifications_internal", "action_logs", "email_logs",
+                 "user_sessions", "payment_transactions"]:
+        await db[coll].delete_many({"user_id": uid})
+    await db.users.delete_one({"user_id": uid})
+    return {"deleted": True}
+
+
 # ====================== ROOT ======================
 @api.get("/")
 async def root():
-    return {"app": "StampDoc Romania", "status": "ok"}
+    return {"app": "Energy Project Design Services", "version": "4.5", "status": "ok"}
 
 
 app.include_router(api)

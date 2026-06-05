@@ -7,6 +7,14 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import ProjectData from './pages/ProjectData';
+import TechnicalData from './pages/TechnicalData';
+import SmartCalc from './pages/SmartCalc';
+import Verification from './pages/Verification';
+import AIAssistantPage from './pages/AIAssistantPage';
+import AuditPage from './pages/AuditPage';
+import InternalCertifications from './pages/InternalCertifications';
+import EmailComposer from './pages/EmailComposer';
 import Templates from './pages/Templates';
 import TemplateEditor from './pages/TemplateEditor';
 import Stamps from './pages/Stamps';
@@ -28,7 +36,6 @@ function ProtectedRoute({ children }) {
 
 function AppRouter() {
   const location = useLocation();
-  // Synchronous check for OAuth callback to avoid race conditions
   if (location.hash?.includes('session_id=')) return <AuthCallback />;
 
   return (
@@ -42,10 +49,18 @@ function AppRouter() {
       <Route path="/gdpr" element={<Gdpr />} />
 
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/proiect" element={<ProtectedRoute><ProjectData /></ProtectedRoute>} />
+      <Route path="/tehnice" element={<ProtectedRoute><TechnicalData /></ProtectedRoute>} />
+      <Route path="/calcul" element={<ProtectedRoute><SmartCalc /></ProtectedRoute>} />
+      <Route path="/verifica" element={<ProtectedRoute><Verification /></ProtectedRoute>} />
+      <Route path="/ai" element={<ProtectedRoute><AIAssistantPage /></ProtectedRoute>} />
+      <Route path="/audit" element={<ProtectedRoute><AuditPage /></ProtectedRoute>} />
+      <Route path="/certificari" element={<ProtectedRoute><InternalCertifications /></ProtectedRoute>} />
+      <Route path="/email" element={<ProtectedRoute><EmailComposer /></ProtectedRoute>} />
       <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
       <Route path="/templates/:id" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
       <Route path="/stamps" element={<ProtectedRoute><Stamps /></ProtectedRoute>} />
-      <Route path="/certificates" element={<ProtectedRoute><Certificates /></ProtectedRoute>} />
+      <Route path="/certificate" element={<ProtectedRoute><Certificates /></ProtectedRoute>} />
       <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />

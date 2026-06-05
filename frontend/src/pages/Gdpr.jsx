@@ -36,12 +36,12 @@ export default function Gdpr() {
       </div>
 
       <Section n="01" title="Operatorul de date">
-        <p><strong>[Nume Firmă SRL]</strong>, sediu social: <strong>[Adresă sediu social]</strong>, CUI: <strong>[RO XXXXXXXX]</strong>.</p>
-        <p>Responsabil cu protecția datelor (DPO): <a href="mailto:dpo@stampdoc.ro" className="font-semibold underline">dpo@stampdoc.ro</a>.</p>
+        <p><strong>ENERGY PROJECT DESIGN SRL</strong>, sediu social: <strong>Str. Lt. Alexandru Popescu nr. 9B, Et. mansardă, Cam. 1, Sectorul 3, București</strong>, CUI: <strong>43151074</strong>, J40/12982/2020.</p>
+        <p>Responsabil cu protecția datelor (DPO): <a href="mailto:dpo@energyprojectdesign.ro" className="font-semibold underline">dpo@energyprojectdesign.ro</a>.</p>
       </Section>
 
       <Section n="02" title="Cum exercitați drepturile">
-        <p>Trimiteți o cerere la <a href="mailto:dpo@stampdoc.ro" className="font-semibold underline">dpo@stampdoc.ro</a> cu:</p>
+        <p>Trimiteți o cerere la <a href="mailto:dpo@energyprojectdesign.ro" className="font-semibold underline">dpo@energyprojectdesign.ro</a> cu:</p>
         <ul className="list-disc pl-6 space-y-1.5">
           <li>Numele complet și adresa de email asociată contului.</li>
           <li>Tipul dreptului pe care doriți să-l exercitați.</li>

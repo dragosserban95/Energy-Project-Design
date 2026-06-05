@@ -11,10 +11,10 @@ export default function Termeni() {
   return (
     <LegalLayout title="Termeni și Condiții" eyebrow="// Document juridic">
       <p className="text-gray-700">
-        Prezentul document reglementează utilizarea platformei <strong>StampDoc.ro</strong> ("Platforma"),
-        operată de <strong>[Nume Firmă SRL]</strong>, cu sediul în <strong>[Adresă sediu social]</strong>,
-        înregistrată la Registrul Comerțului cu nr. <strong>[J XX/XXXX/AAAA]</strong>,
-        CUI <strong>[RO XXXXXXXX]</strong> ("Operatorul").
+        Prezentul document reglementează utilizarea platformei <strong>Energy Project Design Services</strong> ("Platforma"),
+        operată de <strong>ENERGY PROJECT DESIGN SRL</strong>, cu sediul în <strong>Str. Lt. Alexandru Popescu nr. 9B, Et. mansardă, Cam. 1, Sectorul 3, București, cod 032577</strong>,
+        înregistrată la Registrul Comerțului cu nr. <strong>J40/12982/2020</strong>,
+        CUI <strong>43151074</strong>, cod CAEN 7112 — Activități de inginerie și consultanță tehnică ("Operatorul").
       </p>
 
       <Section n="01" title="Acceptarea termenilor">
@@ -50,11 +50,11 @@ export default function Termeni() {
       </Section>
 
       <Section n="09" title="Legea aplicabilă">
-        <p>Prezentul contract este guvernat de legea română. Orice litigiu se va soluționa amiabil sau, în caz contrar, de instanțele competente din <strong>[Oraș sediu]</strong>.</p>
+        <p>Prezentul contract este guvernat de legea română. Orice litigiu se va soluționa amiabil sau, în caz contrar, de instanțele competente din <strong>Municipiul București</strong>.</p>
       </Section>
 
       <Section n="10" title="Contact">
-        <p>Întrebări la <a href="mailto:contact@stampdoc.ro" className="text-black font-semibold underline">contact@stampdoc.ro</a>.</p>
+        <p>Întrebări la <a href="mailto:contact@energyprojectdesign.ro" className="text-black font-semibold underline">contact@energyprojectdesign.ro</a>.</p>
       </Section>
     </LegalLayout>
   );

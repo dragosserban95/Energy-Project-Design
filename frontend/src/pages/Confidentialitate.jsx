@@ -11,9 +11,10 @@ export default function Confidentialitate() {
   return (
     <LegalLayout title="Politică de Confidențialitate" eyebrow="// Cum protejăm datele dvs.">
       <p>
-        Această politică explică ce date colectăm prin platforma <strong>StampDoc.ro</strong>,
-        cum le folosim și ce drepturi aveți. Operator de date: <strong>[Nume Firmă SRL]</strong>,
-        sediu în <strong>[Adresă sediu social]</strong>, contact GDPR: <a href="mailto:dpo@stampdoc.ro" className="font-semibold underline">dpo@stampdoc.ro</a>.
+        Această politică explică ce date colectăm prin platforma <strong>Energy Project Design Services</strong>,
+        cum le folosim și ce drepturi aveți. Operator de date: <strong>ENERGY PROJECT DESIGN SRL</strong>,
+        sediu în <strong>Str. Lt. Alexandru Popescu nr. 9B, Sectorul 3, București</strong>, CUI <strong>43151074</strong>,
+        contact GDPR: <a href="mailto:dpo@energyprojectdesign.ro" className="font-semibold underline">dpo@energyprojectdesign.ro</a>.
       </p>
 
       <Section n="01" title="Date colectate">

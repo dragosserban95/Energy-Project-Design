@@ -17,7 +17,7 @@ export default function Landing() {
             <div className="w-8 h-8 bg-black text-[#FFB300] flex items-center justify-center">
               <Flame className="w-4 h-4" strokeWidth={2.5} />
             </div>
-            <div className="font-bold tracking-tight text-lg">StampDoc<span className="text-[#FFB300]">.ro</span></div>
+            <div className="font-bold tracking-tight text-lg">Energy Project<span className="text-[#FFB300]"> Design</span></div>
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-sm">
             <a href="#features" className="text-gray-700 hover:text-black">Funcționalități</a>
@@ -42,13 +42,13 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-6 lg:px-12 grid lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-7 stagger">
             <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gray-500 mb-6">
-              <span className="w-8 h-px bg-[#FFB300]" /> Platformă pentru ingineria gazelor
+              <span className="w-8 h-px bg-[#FFB300]" /> Platformă pentru documentații tehnice gaze naturale
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tighter leading-[1.05] mb-6">
-              Automatizarea documentelor pentru <span className="bg-[#FFB300] px-2">ingineria gazelor</span> naturale.
+              Documentații tehnice gaze naturale, <span className="bg-[#FFB300] px-2">automatizate</span> de la introducere date până la trimitere.
             </h1>
             <p className="text-lg text-gray-600 max-w-xl mb-8 leading-relaxed">
-              Încărcați șabloane DOCX, completați-le rapid, aplicați ștampila și semnătura digitală PKI, apoi trimiteți direct pe email — totul într-un singur loc, conform cerințelor ANRE.
+              Energy Project Design Services — platformă completă pentru branșamente, extinderi conducte, instalații de utilizare. Date proiect, calcul inteligent, generare documente, ștampile autorizate, certificări VGD/RTE, email-uri către OSD și beneficiar.
             </p>
             <div className="flex items-center gap-3">
               <Link to="/register" className="amber-btn" data-testid="hero-cta-register">
@@ -153,12 +153,12 @@ export default function Landing() {
 
       <footer className="border-t border-gray-200 py-10">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-500">
-          <div>© {new Date().getFullYear()} StampDoc România. Toate drepturile rezervate.</div>
+          <div>© {new Date().getFullYear()} ENERGY PROJECT DESIGN SRL · CUI 43151074 · J40/12982/2020</div>
           <div className="flex gap-6">
             <Link to="/termeni" className="hover:text-black" data-testid="footer-termeni">Termeni</Link>
             <Link to="/confidentialitate" className="hover:text-black" data-testid="footer-confidentialitate">Confidențialitate</Link>
             <Link to="/gdpr" className="hover:text-black" data-testid="footer-gdpr">GDPR</Link>
-            <span>contact@stampdoc.ro</span>
+            <span>contact@energyprojectdesign.ro</span>
           </div>
         </div>
       </footer>

@@ -9,6 +9,7 @@ import { FileText, Stamp, ShieldCheck, FileCheck2, ArrowRight, Plus } from 'luci
 export default function Dashboard() {
   const { user, refresh } = useAuth();
   const [counts, setCounts] = useState({ templates: 0, stamps: 0, certs: 0, docs: 0 });
+  const [completion, setCompletion] = useState(0);
   const [recent, setRecent] = useState([]);
   const [params] = useSearchParams();
   const nav = useNavigate();
@@ -16,11 +17,12 @@ export default function Dashboard() {
   useEffect(() => {
     (async () => {
       try {
-        const [t, s, c, d] = await Promise.all([
-          api.get('/templates'), api.get('/stamps'), api.get('/certificates'), api.get('/documents'),
+        const [t, s, c, d, p] = await Promise.all([
+          api.get('/templates'), api.get('/stamps'), api.get('/certificates'), api.get('/documents'), api.get('/project'),
         ]);
         setCounts({ templates: t.data.length, stamps: s.data.length, certs: c.data.length, docs: d.data.length });
         setRecent(d.data.slice(0, 5));
+        setCompletion(p.data.completion || 0);
       } catch (_) {}
     })();
   }, []);
@@ -50,10 +52,10 @@ export default function Dashboard() {
   }, [params, refresh, nav]);
 
   const stats = [
-    { label: 'Șabloane', value: counts.templates, icon: FileText, to: '/templates' },
-    { label: 'Ștampile', value: counts.stamps, icon: Stamp, to: '/stamps' },
-    { label: 'Certificate', value: counts.certs, icon: ShieldCheck, to: '/certificates' },
+    { label: 'Date proiect', value: `${completion}%`, icon: FileText, to: '/proiect' },
     { label: 'Documente', value: counts.docs, icon: FileCheck2, to: '/documents' },
+    { label: 'Ștampile', value: counts.stamps, icon: Stamp, to: '/stamps' },
+    { label: 'Certificate', value: counts.certs, icon: ShieldCheck, to: '/certificate' },
   ];
 
   return (

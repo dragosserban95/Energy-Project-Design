@@ -1,0 +1,46 @@
+{
+  "summary": "V4.5 backend testing — 47/47 pytest pass. Added 20 new tests for Projects CRUD (auto-create, completion 0/50/100), Technical/Calc engine (normal/warning/override/recalculate/placeholders), Certifications (create+list+invalid role), AI parser (verify/unknown/run_calc), Verification scoring (8 checks + summary), Audit (>=13 pages), GDPR export+delete account+session invalidation, plus GDPR-at-register (consent=false → 400, consent=true → token + plan='basic' + gdpr_consent_at set). Adapted existing regression tests for v4.5 contract changes: root endpoint now returns 'Energy Project Design Services' v4.5; /api/plans is a LIST of 9 EUR plans (no developer); default plan is 'basic' (price 99 EUR, 30 docs/month); register requires gdpr_consent=true; Stripe checkout test now uses plan_id='proiectant'. Replaced free-plan quota cap test with a basic-plan within-limits test.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/auth/google/session", "issue": "Legacy code path still hardcodes plan='free' for new Google users, but DEFAULT_PLAN is now 'basic'. Inconsistency between email and google signup defaults."},
+      {"endpoint": "/api/documents/_enforce_quota", "issue": "Branch `if user.plan == 'free'` is dead code in v4.5 (no 'free' plan exists). Should be removed; basic now uses the monthly-cap path correctly."},
+      {"endpoint": "/api/verification", "issue": "checks[].score for the 'plan' check returns 50 when plan_cfg.export_allowed is False (basic) but status='warning' — overall_score therefore caps below 100 even with a perfectly filled project until upgrade. Intentional but may surprise users."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_v45_features.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/v45_results.xml",
+    "/app/test_reports/pytest/regression_results.xml"
+  ],
+  "action_items": [
+    "(Optional) In /api/auth/google/session set plan=plans_module.DEFAULT_PLAN (basic) and add gdpr_consent=True with gdpr_consent_at — Google sign-ins currently bypass GDPR consent capture entirely.",
+    "(Optional) Remove the dead `if user.plan == 'free'` branch in _enforce_quota — all v4.5 plans go through the monthly-cap path.",
+    "(Cleanup) models.py CheckoutRequest still has comment `'pro' or 'enterprise'` — update to v4.5 plan ids."
+  ],
+  "critical_code_review_comments": [
+    "server.py has grown to 923 lines and now houses Projects, Tech, Calc, Verification, Audit, GDPR, Certifications, AI in one file — split into routers (e.g., routers/projects.py, routers/gdpr.py) before next major version.",
+    "_get_or_create_default_project is called from 6 endpoints and is the only seam between requests and Mongo — fine, but the auto-creation race-conditions on the very first call from two parallel requests are not guarded (no unique index on (user_id, project_id-default)). Low risk for single-tenant flow.",
+    "/api/auth/google/session: still hardcodes plan='free' (line 129) which no longer exists in PLANS — Google sign-ins would land on a non-existent plan and break _enforce_quota lookup (PLANS.get returns None → no quota enforcement). Fix to DEFAULT_PLAN.",
+    "PLANS dict (server.py L60) is rebuilt at import time from plans_module — but if a developer ever adds a plan with `internal=True` only, /api/payments/checkout would 400 for it; current behavior is correct, but worth a comment.",
+    "/api/verification iterates checks but the 'plan' check uses `user.plan != 'basic'` for status, which means literally every other plan (including the cheaper 'avize' at 129 EUR) is 'ok' regardless of export rights. Logic should align with plan_cfg['export_allowed'].",
+    "ai_assistant.parse: scoring weights are tiny (verbs 0.5, nouns 1.0). With single-noun matches confidence stays at 0.33 — surface this in UI thresholds.",
+    "gdpr_delete_account removes user but does NOT issue a logout/token-revocation — the JWT (if used) remains valid until expiry. Acceptable for v4.5 since /auth/me lookups the deleted user (returns 401) but worth noting.",
+    "calc_engine returns cost in RON while plans are in EUR — mixed currency inside one response without explicit unit on every key (only estimare_cost carries 'unit': 'RON'). Add 'unit' to every numeric calc result for clarity.",
+    "Mongo `_id` is correctly stripped in all new endpoints (project, certifications, gdpr/export) via projection or pop — verified.",
+    "No input-length cap on /api/ai/parse message → log truncates to 200 chars but route accepts arbitrarily long strings. Add max_length to AIQuery."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (gdpr_consent fixture, v4.5 plan/root assertions, basic-quota test, Stripe plan_id=proiectant)",
+    "/app/backend/tests/test_v45_features.py (NEW — 20 tests covering Projects, Technical, Calc, Certifications, AI, Verification, Audit, GDPR)"
+  ],
+  "success_rate": {"backend": "100% (47/47 pytest — 27 regression + 20 v4.5)", "frontend": "not tested per request (backend only)"},
+  "test_credentials": "Each pytest run creates two fresh users via /api/auth/register with gdpr_consent=true: test_{uuid8}@example.com (regression) and v45_{uuid8}@example.com (v4.5). No shared seed creds.",
+  "seed_data_creation": "Per run: 2 users, 1 DOCX template, 1 PIL-generated PNG stamp, 5 generated documents, 1 default project (auto), 1 internal certification, 1 Stripe checkout session (real, via emergentintegrations). The v4.5 user is deleted at the end of its module via /api/gdpr/account so DB grows by ~1 user/run.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Two pytest files now: /app/backend/tests/backend_test.py (27 regression tests, ~6s) and /app/backend/tests/test_v45_features.py (20 v4.5 tests, ~3s). Run both with `pytest /app/backend/tests/ -v`. The v4.5 module ends with gdpr/account delete — keep it last in that module. Default plan is now 'basic' (not 'free'); register requires gdpr_consent=true; /api/plans returns a list, not a dict. Google-auth path still has plan='free' hardcoded — flagged as minor but not exercised by tests.",
+  "rca_of_the_issue": "N/A — no functional defects found. All acceptance criteria for v4.5 (Projects, Technical/Calc, Certifications, AI parser, Verification, Audit, GDPR consent/export/delete) verified end-to-end."
+}

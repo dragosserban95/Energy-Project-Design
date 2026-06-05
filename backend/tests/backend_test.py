@@ -33,6 +33,7 @@ def user_creds():
         "password": "TestPass123!",
         "name": "Test User",
         "company": "TestCo",
+        "gdpr_consent": True,
     }
 
 
@@ -55,15 +56,28 @@ class TestRoot:
         assert r.status_code == 200
         body = r.json()
         assert body.get("status") == "ok"
+        assert body.get("app") == "Energy Project Design Services"
+        assert str(body.get("version", "")).startswith("4.5")
 
     def test_plans(self, session):
         r = session.get(f"{API}/plans", timeout=10)
         assert r.status_code == 200
         plans = r.json()
-        assert set(["free", "pro", "enterprise"]).issubset(plans.keys())
-        assert plans["free"]["currency"] == "ron"
-        assert plans["pro"]["amount"] == 99.0
-        assert plans["enterprise"]["amount"] == 299.0
+        # v4.5: plans is a list of 9 public plans in EUR
+        assert isinstance(plans, list)
+        ids = {p["id"] for p in plans}
+        expected = {"basic", "proiectant", "executant", "avize", "ofertare", "contabilitate", "vgd", "rte", "societate"}
+        assert expected.issubset(ids), f"missing plans: {expected - ids}"
+        assert "developer" not in ids
+        by_id = {p["id"]: p for p in plans}
+        assert by_id["basic"]["price_eur"] == 99
+        assert by_id["proiectant"]["price_eur"] == 149
+        assert by_id["societate"]["price_eur"] == 399
+        for p in plans:
+            assert p["currency"] == "eur"
+            for k in ("features", "stamps_allowed", "recipients_allowed", "documents_allowed", "tagline"):
+                assert k in p, f"plan {p['id']} missing key {k}"
+            assert "export_allowed" in p
 
 
 # ------------- Auth flow -------------
@@ -81,7 +95,9 @@ class TestAuth:
         assert r.status_code == 200
         u = r.json()
         assert u["email"] == user_creds["email"].lower()
-        assert u["plan"] == "free"
+        assert u["plan"] == "basic"
+        assert u.get("gdpr_consent") is True
+        assert u.get("gdpr_consent_at")
 
     def test_duplicate_register(self, session, user_creds, auth):
         r = requests.post(f"{API}/auth/register", json=user_creds, timeout=20)
@@ -181,21 +197,15 @@ class TestDocuments:
 
 # ------------- Quota -------------
 class TestQuota:
-    def test_free_plan_quota(self, session, auth):
-        # Already generated 1 doc above. Generate 4 more (total 5). 6th should 402.
+    def test_basic_plan_quota_within_limits(self, session, auth):
+        # Basic plan = 30 docs/month. Already generated 1 (test_generate). Generate 4 more — all must succeed (well below 30).
         payload = {
             "template_id": pytest.template_id,
             "values": {"nume_beneficiar": "X", "adresa": "Y"},
         }
-        # We need 5 total successful generations. test_generate created 1, so 4 more here.
         for i in range(4):
             r = session.post(f"{API}/documents/generate", json=payload, timeout=30)
             assert r.status_code == 200, f"iter {i}: {r.text}"
-        # 6th call must be blocked
-        r = session.post(f"{API}/documents/generate", json=payload, timeout=30)
-        assert r.status_code == 402, r.text
-        detail = r.json().get("detail", "")
-        assert "Free" in detail or "Limita" in detail or "limita" in detail.lower()
 
 
 # ------------- Email (expect 500: not configured) -------------
@@ -292,7 +302,7 @@ class TestQESProviders:
 # ------------- Stripe Checkout -------------
 class TestStripe:
     def test_checkout(self, session, auth):
-        payload = {"plan_id": "pro", "origin_url": "https://template-stamp-hub.preview.emergentagent.com"}
+        payload = {"plan_id": "proiectant", "origin_url": "https://template-stamp-hub.preview.emergentagent.com"}
         r = session.post(f"{API}/payments/checkout", json=payload, timeout=30)
         assert r.status_code == 200, r.text
         data = r.json()
