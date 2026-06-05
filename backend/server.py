@@ -126,8 +126,11 @@ async def google_session(payload: dict, response: Response):
             "company": None,
             "picture": data.get("picture"),
             "auth_provider": "google",
-            "plan": "free",
+            "plan": plans_module.DEFAULT_PLAN,
             "plan_renews_at": None,
+            "gdpr_consent": True,
+            "gdpr_consent_at": datetime.now(timezone.utc).isoformat(),
+            "is_developer": False,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         await db.users.insert_one(dict(user_doc))

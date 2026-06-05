@@ -1,58 +1,49 @@
-# StampDoc Romania — PRD
+# Energy Project Design Services — PRD
 
 ## Original Problem Statement
-Build me a web site for gas pipes engineering companies in Romania that operates uploaded docx templates to replace within them text introduced by textboxs within the application, stamp them with stamps images uploaded, digitally authorize the stamps introduced, sent the generated docx to email recipients and have purchasing plans for each user, with google login and register by email/account and password.
+Web platform for Romanian natural-gas engineering companies — manage technical documentation: branches, pipe extensions, utilization installations, permits, verifications, communication with OSD / Designer / Contractor / VGD / RTE / Client.
 
-## User Choices
-- UI language: **Romanian**
-- Email service: **Gmail/Google SMTP**
-- Payments: **Stripe** with RON (Romanian Leu)
-- Digital signature: **PKI / PKCS#12** with CMS detached signature (`.p7s`)
-- Auth: **Email/password (JWT)** + **Emergent-managed Google OAuth**
-
-## User Personas
-- Gas pipes engineer at a small/medium Romanian installation firm
-- Technical office manager preparing ANRE-compliant documentation
-- Owner needing fast, repeatable, signed documents to clients
-
-## Core Requirements (Static)
-1. Upload DOCX templates with `{{placeholder}}` markers; auto-detect placeholders
-2. Render dynamic form for placeholders; generate populated DOCX
-3. Upload stamp images (PNG/JPG); insert into DOCX at chosen position & size
-4. Upload PKCS#12 certificates; produce CMS detached signature `.p7s`
-5. Send generated DOCX + `.p7s` via Gmail SMTP to recipients
-6. Subscription plans in RON: Free / Pro (99) / Enterprise (299) via Stripe
-7. Email/password + Google login
+## User Choices (Latest Iteration — V4.5)
+- UI: Romanian
+- Email: Gmail SMTP, per-user creds (each user enters their own Gmail + App Password)
+- Payments: Stripe with EUR
+- Real company: **ENERGY PROJECT DESIGN SRL · CUI 43151074 · J40/12982/2020 · Str. Lt. Alexandru Popescu nr. 9B, Sectorul 3, București**
+- Digital signature: PKCS#12 PKI (CMS .p7s) + QES scaffold ready for certSIGN/DigiSign/Trans Sped activation
+- Auth: JWT email/password + Emergent Google OAuth (GDPR consent captured at register)
 
 ## Architecture
-- Backend: FastAPI, MongoDB (motor), JWT auth, Emergent OAuth, Stripe via emergentintegrations, python-docx, endesive (CMS), cryptography
-- Frontend: React 19, react-router 7, axios, sonner, Tailwind (IBM Plex Sans/Mono), lucide-react
+- Backend: FastAPI + MongoDB (motor), modules split: `plans.py` (10 plans), `calc_engine.py` (smart calculations), `ai_assistant.py` (intent parser), `qes_provider.py`, `signing.py`, `docx_processor.py`, `email_sender.py`, `auth.py`, `db.py`
+- Frontend: React 19 + Tailwind + Swiss/brutalist design (IBM Plex Sans, amber #FFB300 accent)
+- Navigation grouped: Operațional / Documentație / Comunicare & Control / Cont
 
-## Implemented (2026-02)
-- ✅ Romanian landing page (Swiss/brutalist design)
-- ✅ Login / Register (email + Google OAuth)
-- ✅ Dashboard with stats and recent docs
-- ✅ Template upload + placeholder auto-detection
-- ✅ Template editor with dynamic form, stamp & cert selectors
-- ✅ Stamp upload library
-- ✅ Certificate (.p12) upload + parsing
-- ✅ DOCX generation: placeholder replacement + stamp insertion
-- ✅ CMS detached signing (.p7s) via endesive
-- ✅ Document history / download / signature download
-- ✅ Email sending (Gmail SMTP) with DOCX + .p7s attachments
-- ✅ Stripe checkout (RON) for Pro/Enterprise + polling + plan activation
-- ✅ Quota enforcement (free=5 total, pro=200/mo, enterprise=2000/mo)
-- ✅ Settings page
+## Implemented (2026-02 V4.5)
+- ✅ 10 plans (EUR): Basic 99, Proiectant 149, Executant 149, Avize 129, Ofertare 119, Contabilitate 119, VGD 199, RTE 199, Societate 399, Developer (intern lifetime)
+- ✅ Date proiect (14 required fields + observații, completion score, placeholder export)
+- ✅ Date tehnice (11 fields + override per result)
+- ✅ Calcul inteligent — 6 smart boxes: debit_calculat, debit_recomandat, putere_instalata_kw, risc_presiune, estimare_cost, contor_orientativ — each with formula, surse, status, override
+- ✅ Verifică documentație — scoring engine with 8 checks, summary OK/Warning/Missing, copy + JSON export
+- ✅ AI Assistant — rule-based intent parser (~13 intents), preview before navigation, history
+- ✅ Audit interfață — 13+ pages cataloged with required handlers and plan-access flags
+- ✅ Email composer with 7 templates, role-based recipients, placeholder replacement, mailto, attach generated docs
+- ✅ Certificări interne — hash SHA-256 + timestamp + role + signer + document title, history list
+- ✅ Templates / Documents / Stamps / Certificates PKI (existing, fully functional)
+- ✅ Legal pages with real Energy Project Design data (Termeni, Confidențialitate, GDPR)
+- ✅ GDPR consent required at registration; GDPR export + account delete endpoints
+- ✅ Per-user Gmail config in Settings + QES provider scaffold
+
+## Testing
+- 47/47 backend pytest pass (27 regression + 20 v4.5)
 
 ## Backlog
-- P1: Custom stamp positioning with drag-and-drop preview
 - P1: PDF export alongside DOCX
-- P1: Team/multi-user workspaces
-- P2: Document templates marketplace
-- P2: API access for Enterprise
-- P2: PAdES/CAdES qualified e-signature via certSIGN integration
+- P1: Multi-project support (currently one default project per user)
+- P1: Public verification page (`/verify/{doc_id}`) for third parties
+- P2: Real QES provider implementation (certSIGN/DigiSign/Trans Sped)
+- P2: Team workspaces with role inheritance
+- P2: Mobile app
+- P2: AI Developer self-update controlled patch system
 
 ## Next Action Items
-- User to provide GMAIL_USER and GMAIL_APP_PASSWORD to enable email sending
-- Production Stripe keys for live RON payments
-- Add legal pages (Termeni, Confidențialitate, GDPR)
+- Real Stripe live key (currently `sk_test_emergent`)
+- Real QES contract activation
+- Optional: add team/multi-user workspaces
