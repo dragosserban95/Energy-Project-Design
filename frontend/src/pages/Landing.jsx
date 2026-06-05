@@ -155,7 +155,10 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-6 lg:px-12 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-500">
           <div>© {new Date().getFullYear()} StampDoc România. Toate drepturile rezervate.</div>
           <div className="flex gap-6">
-            <span>Termeni</span><span>Confidențialitate</span><span>Contact: contact@stampdoc.ro</span>
+            <Link to="/termeni" className="hover:text-black" data-testid="footer-termeni">Termeni</Link>
+            <Link to="/confidentialitate" className="hover:text-black" data-testid="footer-confidentialitate">Confidențialitate</Link>
+            <Link to="/gdpr" className="hover:text-black" data-testid="footer-gdpr">GDPR</Link>
+            <span>contact@stampdoc.ro</span>
           </div>
         </div>
       </footer>

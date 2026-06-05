@@ -1,0 +1,44 @@
+{
+  "summary": "Iteration 2 testing covered (a) full backend regression (19 pre-existing tests) + 8 new tests for PATCH /api/users/me, GET /api/users/me/email-config, GET /api/qes/providers, updated /api/documents/email Romanian error message, gmail_app_password leak check, and qes_provider persistence — 27/27 pytest pass; (b) frontend smoke for Landing footer, /termeni /confidentialitate /gdpr legal pages, and authenticated Settings page (Gmail config + QES providers). All acceptance criteria verified.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/users/me PATCH", "issue": "Allowing gmail_user='' (empty string) clears credentials but is implicit — not documented. Romanian validation message would be friendlier. Minor."},
+      {"endpoint": "/api/documents/email", "issue": "Returns HTTP 500 on both 'not configured' and 'bad credentials'. Spec accepts this, but 400/422 would be more semantically correct for the former (user input issue, not server error)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Settings (QES section)", "issues": ["For a freshly-registered user (qes_provider=null in DB) the React state defaults selectedProvider to 'mock', so the 'qes-select-mock' button renders as disabled with text '✓ Selectat' instead of enabled with 'Selectează'. Functionally fine but mismatches acceptance phrasing 'qes-select-mock should be enabled'. Consider only marking as Selectat when user.qes_provider explicitly equals the provider id (no default fallback). Pending providers correctly show 'Necesită activare' and are disabled."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(Optional) In Settings.jsx: change `useState(user?.qes_provider || 'mock')` to `useState(user?.qes_provider || null)` so qes-select-mock starts ENABLED (showing 'Selectează') for users who haven't picked yet, matching the iteration_2 acceptance text.",
+    "(Optional, low priority) Return 400 instead of 500 from /api/documents/email when Gmail not configured / SMTP auth fails — current 500 is accepted by spec."
+  ],
+  "critical_code_review_comments": [
+    "server.py PATCH /api/users/me accepts any subset of {name, company, gmail_user, gmail_app_password, qes_provider} but does NOT validate types — passing gmail_user=123 (int) would be stored as int. Add Pydantic model for the patch payload.",
+    "_user_from_doc strips gmail_app_password from the User response — verified working. Good security posture.",
+    "/api/qes/providers does NOT require auth-scoped data, but auth gate is still applied — reasonable for a SaaS to gate provider list. Could be public.",
+    "qes_provider.py: PROVIDERS dict instances are module-level singletons. Fine for stateless info(), but if real providers carry per-request state in the future they need request-scoped factory.",
+    "Settings.jsx removeGmail sets gmail_user='' which the backend stores — then GET /email-config returns configured=false (because both fields fall back to falsy). Works, but a dedicated DELETE /users/me/email-config would be cleaner.",
+    "Settings.jsx useEffect has empty [] deps but uses no eslint-disable comment — currently fine since refresh is not used inside.",
+    "From iteration_1 still open: BSON 16MB risk for base64-stored DOCX/stamp/certificate; PLANS duplication in /api/plans vs quota logic; no rate-limiting on /api/auth/login; JWT_SECRET fallback to 'dev_secret'."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (added TestGmailConfig + TestQESProviders classes; tightened TestEmail assertion to require 'Setări' + 'Configurare email' Romanian substring)"
+  ],
+  "success_rate": {"backend": "100% (27/27 pytest)", "frontend": "100% (all data-testids present and functional)"},
+  "test_credentials": "Each pytest run creates a fresh user via /api/auth/register with email test_{uuid8}@example.com / TestPass123!. Frontend playwright similarly registers uitest_{uuid8}@example.com. No /app/memory/test_credentials.md required.",
+  "seed_data_creation": "Per test run: 1 user, 1 docx template, 1 PNG stamp (PIL-generated), 5 generated documents, 1 Stripe checkout session (real, via emergentintegrations sk_test_emergent), 1 fake Gmail config row, 1 QES provider selection. No teardown — DB grows by one user-data set per run.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend regression+new tests at /app/backend/tests/backend_test.py (27 tests, ~9s). Run: `pytest /app/backend/tests/backend_test.py -v`. Frontend localStorage key is 'auth_token' (not 'token'). Settings UI requires authenticated user; register via /api/auth/register then set localStorage.auth_token before navigating. The only behavioural nit is qes-select-mock starts disabled+'Selectat' for new users because Settings.jsx defaults the local state to 'mock' — main agent decides whether to relax that default.",
+  "rca_of_the_issue": "N/A — no functional bugs. Spec wording mismatch around qes-select-mock initial state is a UX choice, not a defect."
+}

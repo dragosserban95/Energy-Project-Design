@@ -209,9 +209,84 @@ class TestEmail:
         }
         r = session.post(f"{API}/documents/email", json=payload, timeout=20)
         assert r.status_code == 500, r.text
-        detail = r.json().get("detail", "").lower()
-        # Should mention gmail/credentials
-        assert "gmail" in detail or "credential" in detail or "configurat" in detail
+        detail = r.json().get("detail", "")
+        # New spec: Romanian 'Setări → Configurare email' substring
+        assert "Setări" in detail and "Configurare email" in detail, detail
+
+
+# ------------- Gmail Config (new) -------------
+class TestGmailConfig:
+    def test_email_config_initially_false(self, session, auth):
+        r = session.get(f"{API}/users/me/email-config", timeout=10)
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body.get("configured") is False
+        assert body.get("gmail_user") in (None, "")
+
+    def test_patch_users_me_gmail(self, session, auth):
+        r = session.patch(f"{API}/users/me", json={
+            "gmail_user": "fakeuser@gmail.com",
+            "gmail_app_password": "abcdabcdabcdabcd",
+        }, timeout=15)
+        assert r.status_code == 200, r.text
+        user = r.json()
+        assert user.get("gmail_configured") is True
+        assert user.get("gmail_user") == "fakeuser@gmail.com"
+        # NEVER return app password
+        assert "gmail_app_password" not in user
+
+    def test_email_config_after_save(self, session, auth):
+        r = session.get(f"{API}/users/me/email-config", timeout=10)
+        assert r.status_code == 200
+        body = r.json()
+        assert body["configured"] is True
+        assert body["gmail_user"] == "fakeuser@gmail.com"
+
+    def test_me_does_not_return_password(self, session, auth):
+        r = session.get(f"{API}/auth/me", timeout=10)
+        assert r.status_code == 200
+        u = r.json()
+        assert "gmail_app_password" not in u
+        assert u.get("gmail_configured") is True
+
+    def test_email_with_bad_creds(self, session, auth):
+        payload = {
+            "document_id": pytest.document_id,
+            "recipients": ["test@example.com"],
+            "subject": "Test",
+            "body": "Hello",
+        }
+        r = session.post(f"{API}/documents/email", json=payload, timeout=30)
+        assert r.status_code == 500, r.text
+        detail = r.json().get("detail", "")
+        # SMTP auth fails OR generic SMTP error — both acceptable
+        assert ("Autentificare Gmail" in detail) or ("SMTP" in detail) or ("Eroare" in detail), detail
+
+
+# ------------- QES Providers (new) -------------
+class TestQESProviders:
+    def test_list_providers(self, session, auth):
+        r = session.get(f"{API}/qes/providers", timeout=10)
+        assert r.status_code == 200, r.text
+        providers = r.json()
+        assert isinstance(providers, list)
+        ids = {p["id"]: p for p in providers}
+        assert set(ids.keys()) == {"mock", "certsign", "digisign", "transsped"}, ids.keys()
+        assert ids["mock"]["status"] == "active"
+        for pid in ("certsign", "digisign", "transsped"):
+            assert ids[pid]["status"] == "pending_activation"
+            assert isinstance(ids[pid].get("setup_guide"), list)
+            assert len(ids[pid]["setup_guide"]) >= 1
+
+    def test_qes_unauth(self):
+        r = requests.get(f"{API}/qes/providers", timeout=10)
+        assert r.status_code == 401
+
+    def test_set_qes_provider(self, session, auth):
+        r = session.patch(f"{API}/users/me", json={"qes_provider": "mock"}, timeout=10)
+        assert r.status_code == 200, r.text
+        u = r.json()
+        assert u.get("qes_provider") == "mock"
 
 
 # ------------- Stripe Checkout -------------

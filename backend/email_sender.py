@@ -1,11 +1,12 @@
-"""Email sending via Gmail SMTP."""
-import os
+"""Email sending via Gmail SMTP using each user's own credentials."""
 import smtplib
 from email.message import EmailMessage
 from typing import List, Optional, Tuple
 
 
 def send_email_with_attachment(
+    gmail_user: str,
+    gmail_password: str,
     recipients: List[str],
     subject: str,
     body: str,
@@ -13,17 +14,15 @@ def send_email_with_attachment(
     attachment_bytes: bytes,
     extra_attachments: Optional[List[Tuple[str, bytes, str]]] = None,
 ) -> dict:
-    """Send an email with the generated DOCX attached.
+    """Send an email with the generated DOCX attached using the user's own Gmail.
 
-    Uses Gmail SMTP via app password. Reads GMAIL_USER / GMAIL_APP_PASSWORD from env.
+    Each authenticated user provides their own GMAIL_USER + GMAIL_APP_PASSWORD
+    via the Settings page (stored on the user document).
     """
-    gmail_user = os.environ.get("GMAIL_USER", "").strip()
-    gmail_pass = os.environ.get("GMAIL_APP_PASSWORD", "").strip()
-
-    if not gmail_user or not gmail_pass:
+    if not gmail_user or not gmail_password:
         return {
             "ok": False,
-            "error": "Gmail credentials not configured. Adăugați GMAIL_USER și GMAIL_APP_PASSWORD în setări.",
+            "error": "Adresa Gmail nu este configurată. Mergeți la Setări → Configurare email pentru a o adăuga.",
         }
 
     msg = EmailMessage()
@@ -32,7 +31,6 @@ def send_email_with_attachment(
     msg["To"] = ", ".join(recipients)
     msg.set_content(body or "")
 
-    # Main DOCX attachment
     msg.add_attachment(
         attachment_bytes,
         maintype="application",
@@ -40,15 +38,16 @@ def send_email_with_attachment(
         filename=attachment_name,
     )
 
-    # Extra attachments (e.g. signature .p7s)
     for name, data, mime in (extra_attachments or []):
         maintype, subtype = mime.split("/", 1) if "/" in mime else ("application", "octet-stream")
         msg.add_attachment(data, maintype=maintype, subtype=subtype, filename=name)
 
     try:
         with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=20) as server:
-            server.login(gmail_user, gmail_pass)
+            server.login(gmail_user, gmail_password)
             server.send_message(msg)
         return {"ok": True}
+    except smtplib.SMTPAuthenticationError:
+        return {"ok": False, "error": "Autentificare Gmail eșuată. Verificați adresa și App Password-ul (16 caractere)."}
     except Exception as e:
-        return {"ok": False, "error": f"SMTP error: {str(e)}"}
+        return {"ok": False, "error": f"Eroare SMTP: {str(e)}"}

@@ -31,6 +31,7 @@ from auth import (
 from docx_processor import extract_placeholders, replace_placeholders, insert_stamp
 from signing import parse_p12, sign_document
 from email_sender import send_email_with_attachment
+import qes_provider
 
 from emergentintegrations.payments.stripe.checkout import (
     StripeCheckout, CheckoutSessionRequest,
@@ -41,6 +42,13 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="StampDoc Romania API")
 api = APIRouter(prefix="/api")
+
+
+def _user_from_doc(doc: dict) -> User:
+    """Construct a User model, computing the gmail_configured boolean and stripping secrets."""
+    d = {k: v for k, v in doc.items() if k not in ("_id", "password_hash", "gmail_app_password")}
+    d["gmail_configured"] = bool(doc.get("gmail_user") and doc.get("gmail_app_password"))
+    return User(**d)
 
 # ----------- Pricing plans (server side, fixed amounts in RON) -----------
 PLANS = {
@@ -138,6 +146,33 @@ async def logout(request: Request, response: Response):
         await db.user_sessions.delete_many({"session_token": token})
     response.delete_cookie("session_token", path="/")
     return {"ok": True}
+
+
+# ====================== USER SETTINGS ======================
+@api.patch("/users/me", response_model=User)
+async def update_me(payload: dict, user: User = Depends(get_current_user)):
+    """Update user profile / Gmail / QES settings."""
+    allowed = {"name", "company", "gmail_user", "gmail_app_password", "qes_provider"}
+    updates = {k: v for k, v in payload.items() if k in allowed}
+    if not updates:
+        raise HTTPException(status_code=400, detail="Nicio modificare validă")
+    await db.users.update_one({"user_id": user.user_id}, {"$set": updates})
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0})
+    return _user_from_doc(user_doc)
+
+
+@api.get("/users/me/email-config")
+async def email_config(user: User = Depends(get_current_user)):
+    """Return whether Gmail is configured (never expose the password)."""
+    doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "gmail_user": 1, "gmail_app_password": 1})
+    configured = bool(doc and doc.get("gmail_user") and doc.get("gmail_app_password"))
+    return {"configured": configured, "gmail_user": doc.get("gmail_user") if doc else None}
+
+
+# ====================== QES PROVIDERS ======================
+@api.get("/qes/providers")
+async def list_qes_providers(user: User = Depends(get_current_user)):
+    return qes_provider.list_providers()
 
 
 # ====================== TEMPLATES ======================
@@ -405,7 +440,14 @@ async def email_document(req: EmailSendRequest, user: User = Depends(get_current
         sig_name = doc["name"].rsplit(".docx", 1)[0] + ".p7s"
         extras.append((sig_name, base64.b64decode(doc["signature_b64"]), "application/pkcs7-signature"))
 
+    # Fetch user's Gmail credentials
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "gmail_user": 1, "gmail_app_password": 1})
+    gmail_user = (user_doc or {}).get("gmail_user", "") or ""
+    gmail_pass = (user_doc or {}).get("gmail_app_password", "") or ""
+
     result = send_email_with_attachment(
+        gmail_user=gmail_user,
+        gmail_password=gmail_pass,
         recipients=req.recipients,
         subject=req.subject,
         body=req.body,

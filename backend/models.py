@@ -32,6 +32,9 @@ class User(BaseModel):
     auth_provider: str = "email"  # 'email' | 'google'
     plan: str = "free"  # free, pro, enterprise
     plan_renews_at: Optional[str] = None
+    gmail_user: Optional[str] = None
+    gmail_configured: bool = False
+    qes_provider: Optional[str] = None  # 'mock' | 'certsign' | 'digisign' | 'transsped'
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 

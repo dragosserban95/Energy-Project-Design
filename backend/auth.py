@@ -66,11 +66,16 @@ async def get_current_user(request: Request) -> User:
     if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
+    def _build(doc):
+        d = {k: v for k, v in doc.items() if k not in ("_id", "password_hash", "gmail_app_password")}
+        d["gmail_configured"] = bool(doc.get("gmail_user") and doc.get("gmail_app_password"))
+        return User(**d)
+
     payload = decode_jwt(token)
     if payload and payload.get("user_id"):
         user_doc = await db.users.find_one({"user_id": payload["user_id"]}, {"_id": 0})
         if user_doc:
-            return User(**user_doc)
+            return _build(user_doc)
 
     sess = await db.user_sessions.find_one({"session_token": token}, {"_id": 0})
     if sess:
@@ -82,6 +87,6 @@ async def get_current_user(request: Request) -> User:
         if exp and exp >= datetime.now(timezone.utc):
             user_doc = await db.users.find_one({"user_id": sess["user_id"]}, {"_id": 0})
             if user_doc:
-                return User(**user_doc)
+                return _build(user_doc)
 
     raise HTTPException(status_code=401, detail="Invalid or expired session")

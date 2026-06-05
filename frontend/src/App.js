@@ -15,6 +15,9 @@ import Documents from './pages/Documents';
 import Pricing from './pages/Pricing';
 import Settings from './pages/Settings';
 import AuthCallback from './pages/AuthCallback';
+import Termeni from './pages/Termeni';
+import Confidentialitate from './pages/Confidentialitate';
+import Gdpr from './pages/Gdpr';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -34,6 +37,9 @@ function AppRouter() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/pricing" element={<Pricing />} />
+      <Route path="/termeni" element={<Termeni />} />
+      <Route path="/confidentialitate" element={<Confidentialitate />} />
+      <Route path="/gdpr" element={<Gdpr />} />
 
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
