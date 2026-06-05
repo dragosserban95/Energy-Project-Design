@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ActiveProjectBar from './ActiveProjectBar';
+import LicenseTimer from './LicenseTimer';
 import {
   LayoutDashboard, ClipboardList, Settings2, Calculator, FileText, FileCheck2,
   Stamp, ShieldCheck, Mail, BadgeCheck, GaugeCircle, CreditCard, Settings, LogOut,
@@ -133,9 +134,10 @@ export default function AppShell({ children, title, subtitle }) {
             <h1 className="text-xl font-semibold tracking-tight" data-testid="page-title">{title}</h1>
             {subtitle && <div className="text-xs text-gray-500 mt-0.5">{subtitle}</div>}
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <LicenseTimer />
             <ActiveProjectBar />
-            <div className="text-xs text-gray-500 uppercase tracking-[0.2em] hidden lg:block">{user?.email}</div>
+            <div className="text-xs text-gray-500 uppercase tracking-[0.2em] hidden xl:block">{user?.email}</div>
           </div>
         </header>
         <main className="flex-1 px-8 py-8 page-enter">{children}</main>

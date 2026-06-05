@@ -1139,6 +1139,59 @@ async def dev_safety_rules(user: User = Depends(get_current_user)):
     return {"rules": ai_developer.SAFETY_RULES}
 
 
+# ====================== ACTIVITY LOG & VERSION STATUS ======================
+@api.get("/activity")
+async def get_activity(limit: int = 30, user: User = Depends(get_current_user)):
+    """Return recent user actions for the dashboard activity log."""
+    cursor = db.action_logs.find({"user_id": user.user_id}, {"_id": 0}).sort("created_at", -1)
+    items = await cursor.to_list(limit)
+    # Human-readable labels (Romanian) — keeps the log professional looking
+    label_map = {
+        "register": "Înregistrare cont nou",
+        "login": "Autentificare",
+        "project.update": "Actualizare date proiect",
+        "ai.parse": "Comandă AI Assistant",
+        "dev.plan": "Plan AI Developer generat",
+        "logout": "Deconectare",
+    }
+    for it in items:
+        it["label"] = label_map.get(it.get("action", ""), it.get("action", "Acțiune"))
+    return items
+
+
+@api.get("/version/status")
+async def version_status(user: User = Depends(get_current_user)):
+    """Aggregate completion status of the platform. Returns final-version message
+    when all critical capabilities are configured.
+    """
+    # Count user-scoped configured items
+    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0}) or {}
+    proj_count = await db.projects.count_documents({"user_id": user.user_id, "archived": {"$ne": True}})
+    doc_count = await db.documents.count_documents({"user_id": user.user_id})
+    sys_t_count = await db.system_templates.count_documents({})
+    capabilities = {
+        "gmail_configured": bool(user_doc.get("gmail_user") and user_doc.get("gmail_app_password")),
+        "qes_configured": bool(user_doc.get("qes_credentials")),
+        "has_projects": proj_count > 0,
+        "has_documents": doc_count > 0,
+        "system_templates_loaded": sys_t_count > 0,
+        "gdpr_consent": bool(user_doc.get("gdpr_consent")),
+        "stripe_live": os.environ.get("STRIPE_API_KEY", "").startswith("sk_live_"),
+    }
+    done = sum(1 for v in capabilities.values() if v)
+    total = len(capabilities)
+    percent = round(100.0 * done / total, 1)
+    is_final = percent == 100.0
+    return {
+        "version": "4.7",
+        "capabilities": capabilities,
+        "completion_percent": percent,
+        "is_final_version": is_final,
+        "message": "Program versiune finală încheiat cu succes." if is_final else
+                   f"Versiune în dezvoltare — {done}/{total} capabilități configurate.",
+    }
+
+
 # ====================== ROOT ======================
 @api.get("/")
 async def root():

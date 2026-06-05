@@ -4,25 +4,30 @@ import AppShell from '../components/AppShell';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-import { FileText, Stamp, ShieldCheck, FileCheck2, ArrowRight, Plus } from 'lucide-react';
+import { FileText, Stamp, ShieldCheck, FileCheck2, ArrowRight, Plus, Activity } from 'lucide-react';
 
 export default function Dashboard() {
   const { user, refresh } = useAuth();
   const [counts, setCounts] = useState({ templates: 0, stamps: 0, certs: 0, docs: 0 });
   const [completion, setCompletion] = useState(0);
   const [recent, setRecent] = useState([]);
+  const [activity, setActivity] = useState([]);
+  const [versionStatus, setVersionStatus] = useState(null);
   const [params] = useSearchParams();
   const nav = useNavigate();
 
   useEffect(() => {
     (async () => {
       try {
-        const [t, s, c, d, p] = await Promise.all([
+        const [t, s, c, d, p, a, vs] = await Promise.all([
           api.get('/templates'), api.get('/stamps'), api.get('/certificates'), api.get('/documents'), api.get('/project'),
+          api.get('/activity?limit=20'), api.get('/version/status'),
         ]);
         setCounts({ templates: t.data.length, stamps: s.data.length, certs: c.data.length, docs: d.data.length });
         setRecent(d.data.slice(0, 5));
         setCompletion(p.data.completion || 0);
+        setActivity(a.data || []);
+        setVersionStatus(vs.data);
       } catch (err) {
         console.error('Dashboard load failed:', err);
       }
@@ -119,7 +124,45 @@ export default function Dashboard() {
           {user?.plan === 'free' && (
             <Link to="/pricing" className="amber-btn w-full" data-testid="upgrade-btn">Upgrade plan</Link>
           )}
+          {versionStatus && (
+            <div className="mt-6 pt-6 border-t border-gray-800">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-2">Versiune {versionStatus.version}</div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="flex-1 h-1 bg-gray-800">
+                  <div className="h-1 bg-[#FFB300] transition-all" style={{ width: `${versionStatus.completion_percent}%` }} />
+                </div>
+                <span className="text-xs font-bold">{versionStatus.completion_percent}%</span>
+              </div>
+              <p className="text-[11px] text-gray-400" data-testid="version-message">{versionStatus.message}</p>
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* Activity log */}
+      <div className="mt-8 bg-white border border-gray-200" data-testid="activity-log">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4 text-[#FFB300]" />
+            <h2 className="font-semibold">Registru activitate</h2>
+          </div>
+          <span className="text-xs text-gray-500">{activity.length} acțiuni recente</span>
+        </div>
+        {activity.length === 0 ? (
+          <div className="px-6 py-8 text-center text-sm text-gray-500">Niciun istoric de activitate încă.</div>
+        ) : (
+          <ul className="divide-y divide-gray-200 max-h-80 overflow-y-auto">
+            {activity.map((a) => (
+              <li key={a.log_id} className="px-6 py-3 flex items-center justify-between text-sm" data-testid={`activity-${a.log_id}`}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="mono text-[10px] bg-gray-100 px-1.5 py-0.5 shrink-0">{a.action}</span>
+                  <span className="truncate">{a.label}</span>
+                </div>
+                <span className="text-xs text-gray-500 shrink-0 ml-4">{new Date(a.created_at).toLocaleString('ro-RO')}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </AppShell>
   );
