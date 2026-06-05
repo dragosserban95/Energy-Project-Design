@@ -1,0 +1,127 @@
+{
+  "theme": "LIGHT",
+  "archetype": "4 (Swiss & High-Contrast)",
+  "domain": "Gas Pipes Engineering B2B SaaS",
+  "mood": "Technical, precise, authoritative, highly functional",
+  "colors": {
+    "background": {
+      "primary": "#FFFFFF",
+      "secondary": "#F9FAFB",
+      "tertiary": "#F3F4F6",
+      "glass": "bg-white/70 backdrop-blur-xl border-white/40"
+    },
+    "text": {
+      "primary": "#0A0A0A",
+      "secondary": "#4B5563",
+      "tertiary": "#6B7280",
+      "inverted": "#FFFFFF"
+    },
+    "accent": {
+      "primary": "#FFB300", 
+      "primary_hover": "#FFA000",
+      "secondary": "#2563EB",
+      "danger": "#DC2626",
+      "success": "#16A34A"
+    },
+    "border": {
+      "default": "#E5E7EB",
+      "focus": "#FFB300",
+      "grid": "border-border/40"
+    }
+  },
+  "typography": {
+    "font_families": {
+      "heading": "IBM Plex Sans",
+      "body": "IBM Plex Sans",
+      "mono": "IBM Plex Mono"
+    },
+    "hierarchy": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tighter",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight",
+      "h3": "text-xl sm:text-2xl font-medium tracking-tight",
+      "h4": "text-lg sm:text-xl font-medium",
+      "body": "text-base leading-relaxed",
+      "label": "text-xs font-semibold uppercase tracking-[0.2em] text-gray-500",
+      "small": "text-sm text-gray-600"
+    }
+  },
+  "spacing_and_layout": {
+    "philosophy": "Control Room Grid for the app, Bento Grid for the marketing site. Sharp edges.",
+    "container": "max-w-7xl mx-auto px-6 sm:px-8 lg:px-12",
+    "section_padding": "py-20 sm:py-24 lg:py-32",
+    "dashboard_grid": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4",
+    "bento_grid": "grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-8 lg:gap-12",
+    "card_padding": "p-6 sm:p-8"
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-[#FFB300] text-black hover:bg-[#FFA000] font-semibold px-6 py-3 transition-colors shadow-sm",
+      "secondary": "bg-white text-black border border-gray-200 hover:bg-gray-50 px-6 py-3 transition-colors",
+      "ghost": "bg-transparent text-gray-700 hover:bg-gray-100 hover:text-black transition-colors"
+    },
+    "cards": {
+      "style": "bg-white border border-gray-200 shadow-sm",
+      "dashboard_widget": "bg-white border border-gray-200 p-6 flex flex-col gap-4",
+      "pricing_card": "bg-white border border-gray-200 p-8 flex flex-col gap-6 relative"
+    },
+    "inputs": {
+      "style": "w-full border border-gray-300 rounded-none bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFB300] focus:border-transparent transition-all"
+    },
+    "headers": {
+      "marketing": "fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-gray-200/50",
+      "dashboard": "sticky top-0 z-40 w-full bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between"
+    }
+  },
+  "motion_and_interactions": {
+    "hover": "transition-all duration-200 ease-in-out",
+    "button_hover": "hover:-translate-y-[1px] hover:shadow-md",
+    "card_hover": "hover:shadow-lg hover:border-gray-300",
+    "page_transition": "animate-in fade-in slide-in-from-bottom-4 duration-500"
+  },
+  "media": {
+    "images": {
+      "hero_background": {
+        "url": "https://images.pexels.com/photos/36825977/pexels-photo-36825977.jpeg",
+        "alt": "Industrial gas pipelines at facility",
+        "usage": "Landing page hero section background with white/20 gradient overlay"
+      },
+      "feature_documents": {
+        "url": "https://images.pexels.com/photos/8470057/pexels-photo-8470057.jpeg",
+        "alt": "Engineering blueprints and hard hat",
+        "usage": "Section highlighting DOCX generation and templates"
+      },
+      "feature_pipelines": {
+        "url": "https://images.unsplash.com/photo-1507823690283-48b0929e727b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTF8MHwxfHNlYXJjaHwzfHxpbmR1c3RyaWFsJTIwcGlwZWxpbmUlMjBjb25zdHJ1Y3Rpb258ZW58MHx8fHwxNzgwNjgwNzU3fDA&ixlib=rb-4.1.0&q=85",
+        "alt": "Metal pipes between trees",
+        "usage": "About or Use Cases section for engineering firms"
+      },
+      "sponsor_logo_1": {
+        "url": "https://images.unsplash.com/photo-1705988142466-e468bc654eeb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDF8MHwxfHNlYXJjaHwxfHxjb21wYW55JTIwbG9nbyUyMHdoaXRlJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3ODA2ODA3NTd8MA&ixlib=rb-4.1.0&q=85",
+        "alt": "Partner Logo 1",
+        "usage": "Trusted By section on landing page"
+      },
+      "sponsor_logo_2": {
+        "url": "https://images.pexels.com/photos/26576975/pexels-photo-26576975.jpeg",
+        "alt": "Partner Logo 2",
+        "usage": "Trusted By section on landing page"
+      }
+    },
+    "icons_library": "lucide-react",
+    "visual_enhancers": {
+      "textures": "Subtle noise overlay (opacity 2%) for depth on flat backgrounds",
+      "borders": "Expose the skeleton using Grid Borders strategy for the dashboard (border-r, border-b)",
+      "radius": "rounded-none or rounded-sm max for strict technical feel"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Use Romanian (RO) language for all visible UI text on the landing page and dashboard.",
+    "Implement the 'Swiss Brutalist' aesthetic: minimal rounded corners, high contrast borders, generous whitespace.",
+    "For the Landing page Hero: Use a large compelling headline in IBM Plex Sans (e.g., 'Automatizarea Documentelor pentru Ingineria Gazelor'), an amber primary CTA, and place 'hero_background' image alongside or lightly layered behind.",
+    "Use pure HTML+Tailwind for Marketing layouts. Use customized Shadcn UI components for the Dashboard and Forms.",
+    "Dashboard must utilize the 'Control Room Grid' layout (tight gaps, 1px borders, data-dense look).",
+    "Use 'lucide-react' for all icons.",
+    "Ensure all interactive elements have data-testid attributes (e.g., data-testid='upload-template-btn').",
+    "Dashboard must include sidebar navigation and top-right user profile/settings.",
+    "In the Form view for the Document Editor, generate inputs dynamically. Use standard Shadcn Input components with square/sharp edges."
+  ]
+}
