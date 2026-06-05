@@ -5,7 +5,7 @@ import LicenseTimer from './LicenseTimer';
 import {
   LayoutDashboard, ClipboardList, Settings2, Calculator, FileText, FileCheck2,
   Stamp, ShieldCheck, Mail, BadgeCheck, GaugeCircle, CreditCard, Settings, LogOut,
-  Sparkles, Wrench, ListChecks, Flame, ChevronRight, FolderKanban,
+  Sparkles, Wrench, ListChecks, Flame, ChevronRight, FolderKanban, Github,
 } from 'lucide-react';
 
 const SECTIONS = [
@@ -102,6 +102,9 @@ export default function AppShell({ children, title, subtitle }) {
               </Link>
               <Link to="/developer/chat" data-testid="nav-developer-chat" className={`flex items-center gap-3 px-3 py-2 text-[13px] transition-colors rounded-sm ${location.pathname.startsWith('/developer/chat') ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
                 <Sparkles className="w-3.5 h-3.5 shrink-0" /><span className="flex-1">AI Developer Chat</span>
+              </Link>
+              <Link to="/developer/github" data-testid="nav-developer-github" className={`flex items-center gap-3 px-3 py-2 text-[13px] transition-colors rounded-sm ${location.pathname.startsWith('/developer/github') ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
+                <Github className="w-3.5 h-3.5 shrink-0" /><span className="flex-1">Push pe GitHub</span>
               </Link>
             </div>
           )}
