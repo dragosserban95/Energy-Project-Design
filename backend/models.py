@@ -66,7 +66,15 @@ class ProjectIn(BaseModel):
     proiectant: Optional[str] = ""
     executant: Optional[str] = ""
     verificator_vgd: Optional[str] = ""
+    atestat_vgd: Optional[str] = ""
+    data_verificare_vgd: Optional[str] = ""
+    status_vgd: Optional[str] = ""
+    observatii_vgd: Optional[str] = ""
     responsabil_rte: Optional[str] = ""
+    autorizatie_rte: Optional[str] = ""
+    data_verificare_rte: Optional[str] = ""
+    status_rte: Optional[str] = ""
+    observatii_rte: Optional[str] = ""
     observatii: Optional[str] = ""
 
 

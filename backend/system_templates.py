@@ -157,6 +157,63 @@ def _build_adresa_osd() -> bytes:
     return out.getvalue()
 
 
+def _build_certificare_vgd() -> bytes:
+    d = Document()
+    _h(d, "CERTIFICARE INTERNĂ — VERIFICATOR DOCUMENTAȚIE (VGD)", size=14)
+    d.add_paragraph()
+    _p(d, "Beneficiar lucrare: {{beneficiar}}")
+    _p(d, "Adresa lucrării: {{adresa_lucrare}}, {{localitate}}, {{judet}}")
+    _p(d, "Tip lucrare: {{tip_lucrare}}")
+    _p(d, "Contract: nr. {{numar_contract}} / {{data_contract}}")
+    d.add_paragraph()
+    _p(d, "1. VERIFICATOR DOCUMENTAȚIE", bold=True)
+    _p(d, "Nume: {{verificator_vgd}}")
+    _p(d, "Atestat ANRE: {{atestat_vgd}}")
+    _p(d, "Data verificării: {{data_verificare_vgd}}")
+    _p(d, "Status verificare: {{status_vgd}}")
+    d.add_paragraph()
+    _p(d, "2. OBSERVAȚII VERIFICARE", bold=True)
+    _p(d, "{{observatii_vgd}}")
+    d.add_paragraph()
+    _p(d, "Subsemnatul, în calitate de Verificator Documentație autorizat ANRE, certific verificarea completă a documentației tehnice aferente lucrării de mai sus, conform reglementărilor în vigoare.")
+    d.add_paragraph()
+    _p(d, "Data certificării: {{data_document}}")
+    _p(d, "Semnătură VGD: ________________________")
+    _p(d, "Ștampilă: ________________________")
+    out = io.BytesIO()
+    d.save(out)
+    return out.getvalue()
+
+
+def _build_certificare_rte() -> bytes:
+    d = Document()
+    _h(d, "CERTIFICARE INTERNĂ — RESPONSABIL TEHNIC EXECUȚIE (RTE)", size=14)
+    d.add_paragraph()
+    _p(d, "Beneficiar lucrare: {{beneficiar}}")
+    _p(d, "Adresa lucrării: {{adresa_lucrare}}, {{localitate}}, {{judet}}")
+    _p(d, "Tip lucrare: {{tip_lucrare}}")
+    _p(d, "Executant: {{executant}}")
+    _p(d, "Contract: nr. {{numar_contract}} / {{data_contract}}")
+    d.add_paragraph()
+    _p(d, "1. RESPONSABIL TEHNIC EXECUȚIE", bold=True)
+    _p(d, "Nume: {{responsabil_rte}}")
+    _p(d, "Autorizație ANRE: {{autorizatie_rte}}")
+    _p(d, "Data verificării execuției: {{data_verificare_rte}}")
+    _p(d, "Status execuție: {{status_rte}}")
+    d.add_paragraph()
+    _p(d, "2. OBSERVAȚII EXECUȚIE", bold=True)
+    _p(d, "{{observatii_rte}}")
+    d.add_paragraph()
+    _p(d, "Subsemnatul, în calitate de Responsabil Tehnic cu Execuția autorizat ANRE, certific execuția conformă a lucrării de mai sus și respectarea documentației tehnice verificate.")
+    d.add_paragraph()
+    _p(d, "Data certificării: {{data_document}}")
+    _p(d, "Semnătură RTE: ________________________")
+    _p(d, "Ștampilă: ________________________")
+    out = io.BytesIO()
+    d.save(out)
+    return out.getvalue()
+
+
 SYSTEM_TEMPLATES = [
     {
         "key": "sys_cerere_racordare_gaz",
@@ -185,6 +242,20 @@ SYSTEM_TEMPLATES = [
         "industry": "gas_engineering",
         "subdomain": "bransamente_gaz",
         "builder": _build_adresa_osd,
+    },
+    {
+        "key": "sys_certificare_vgd_gaz",
+        "name": "Certificare internă VGD (sistem)",
+        "industry": "gas_engineering",
+        "subdomain": "bransamente_gaz",
+        "builder": _build_certificare_vgd,
+    },
+    {
+        "key": "sys_certificare_rte_gaz",
+        "name": "Certificare internă RTE (sistem)",
+        "industry": "gas_engineering",
+        "subdomain": "bransamente_gaz",
+        "builder": _build_certificare_rte,
     },
 ]
 

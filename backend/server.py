@@ -650,7 +650,9 @@ async def _create_project_doc(user_id: str, name: str = "Proiect nou", descripti
         "beneficiar": "", "adresa_lucrare": "", "localitate": "", "judet": "",
         "telefon": "", "email": "", "osd": "", "tip_lucrare": "",
         "numar_contract": "", "data_contract": "", "proiectant": "",
-        "executant": "", "verificator_vgd": "", "responsabil_rte": "",
+        "executant": "",
+        "verificator_vgd": "", "atestat_vgd": "", "data_verificare_vgd": "", "status_vgd": "", "observatii_vgd": "",
+        "responsabil_rte": "", "autorizatie_rte": "", "data_verificare_rte": "", "status_rte": "", "observatii_rte": "",
         "observatii": "",
         "completion": 0.0, "technical_data": {}, "calc_results": {},
         "archived": False,
@@ -667,6 +669,7 @@ _get_or_create_default_project = _get_active_project
 
 
 REQUIRED_PROJECT_FIELDS = ["beneficiar", "adresa_lucrare", "localitate", "judet", "telefon", "email", "osd", "tip_lucrare", "numar_contract", "data_contract", "proiectant", "executant", "verificator_vgd", "responsabil_rte"]
+EXTENDED_PROJECT_FIELDS = REQUIRED_PROJECT_FIELDS + ["atestat_vgd", "data_verificare_vgd", "status_vgd", "observatii_vgd", "autorizatie_rte", "data_verificare_rte", "status_rte", "observatii_rte", "observatii"]
 
 
 def _completion(proj: dict) -> float:
@@ -736,7 +739,7 @@ async def project_placeholders(user: User = Depends(get_current_user)):
     td = proj.get("technical_data") or {}
     calc = proj.get("calc_results") or {}
     placeholders = {}
-    for k in REQUIRED_PROJECT_FIELDS + ["observatii"]:
+    for k in EXTENDED_PROJECT_FIELDS:
         placeholders[k] = str(proj.get(k) or "")
     for k, v in td.items():
         if not isinstance(v, dict):

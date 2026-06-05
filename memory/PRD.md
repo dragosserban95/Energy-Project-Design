@@ -18,12 +18,21 @@ B2B SaaS for Romanian engineering documentation, starting with **gas naturale** 
 - Per-user **active project** drives all operational pages
 - System-seeded DOCX templates available for all users (clone to library)
 
-## Industries (5 catalogued)
+## Industries (8 catalogued)
 1. ✅ **Gas naturale** (active) — 5 subdomenii active: Branșamente, Instalații utilizare, Extinderi conductă, Studii fezabilitate, Înlocuiri/modernizări
 2. ⏳ Electrică (coming_soon)
 3. ⏳ Apă & canalizare (coming_soon)
 4. ⏳ Construcții civile (coming_soon)
 5. ⏳ Telecom (coming_soon)
+6. ⏳ Fotovoltaice (coming_soon)
+7. ⏳ Construcții (coming_soon)
+8. ⏳ Infrastructură feroviară (coming_soon)
+
+## Imported from upstream repo (dragosserban95/Energy-Project-Design)
+- VGD/RTE detail fields: atestat_vgd, data_verificare_vgd, status_vgd, observatii_vgd, autorizatie_rte, data_verificare_rte, status_rte, observatii_rte
+- 3 additional industries matching the locked profiles list (Fotovoltaice, Construcții, Infrastructură feroviară)
+- 2 additional system templates: certificare_vgd, certificare_rte
+- Dual placeholder syntax support: `{{var}}` AND `<var>` (the upstream repo uses `<>`)
 
 ## Implemented (2026-02, V4.5+V4.6)
 - ✅ 10 EUR plans (Basic 99 → Societate 399 + Developer)

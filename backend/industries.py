@@ -67,6 +67,36 @@ INDUSTRIES: Dict[str, Dict] = {
             {"id": "retele_fibra", "name": "Rețele fibră optică", "active": False},
         ],
     },
+    "photovoltaic": {
+        "id": "photovoltaic",
+        "name": "Fotovoltaice",
+        "tagline": "Documentații pentru parcuri și instalații fotovoltaice",
+        "status": "coming_soon",
+        "subdomains": [
+            {"id": "instalatii_fv_rezidential", "name": "Instalații FV rezidențiale", "active": False},
+            {"id": "parcuri_fv", "name": "Parcuri fotovoltaice", "active": False},
+        ],
+    },
+    "construction": {
+        "id": "construction",
+        "name": "Construcții",
+        "tagline": "Documentații pentru lucrări de construcții civile și industriale",
+        "status": "coming_soon",
+        "subdomains": [
+            {"id": "rezidential", "name": "Construcții rezidențiale", "active": False},
+            {"id": "industrial", "name": "Construcții industriale", "active": False},
+        ],
+    },
+    "railway_infra": {
+        "id": "railway_infra",
+        "name": "Infrastructură feroviară",
+        "tagline": "Documentații pentru rețele feroviare și infrastructură conexă",
+        "status": "coming_soon",
+        "subdomains": [
+            {"id": "cale_ferata", "name": "Cale ferată", "active": False},
+            {"id": "electrificare_cf", "name": "Electrificare CF", "active": False},
+        ],
+    },
 }
 
 

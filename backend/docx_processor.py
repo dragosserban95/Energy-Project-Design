@@ -7,17 +7,21 @@ from docx.shared import Cm, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 # Match {{variable_name}} or {variable_name}
-PLACEHOLDER_RE = re.compile(r"\{\{\s*([a-zA-Z0-9_\-\.\s]+?)\s*\}\}")
+PLACEHOLDER_RE = re.compile(r"\{\{\s*([a-zA-Z0-9_\-\.\s]+?)\s*\}\}|<\s*([a-zA-Z0-9_]+?)\s*>")
+
+
+def _match_key(m) -> str:
+    return (m.group(1) or m.group(2)).strip()
 
 
 def extract_placeholders(docx_bytes: bytes) -> List[str]:
-    """Detect all unique {{placeholder}} tokens in the DOCX text."""
+    """Detect all unique {{placeholder}} and <placeholder> tokens in the DOCX text."""
     doc = Document(io.BytesIO(docx_bytes))
     found = set()
 
     def scan_text(text: str):
-        for m in PLACEHOLDER_RE.findall(text):
-            found.add(m.strip())
+        for m in PLACEHOLDER_RE.finditer(text):
+            found.add(_match_key(m))
 
     for p in doc.paragraphs:
         scan_text(p.text)
@@ -26,7 +30,6 @@ def extract_placeholders(docx_bytes: bytes) -> List[str]:
             for cell in row.cells:
                 for p in cell.paragraphs:
                     scan_text(p.text)
-    # Headers / footers
     for section in doc.sections:
         for hdr in (section.header, section.footer):
             for p in hdr.paragraphs:
@@ -45,7 +48,7 @@ def _replace_in_paragraph(paragraph, values: Dict[str, str]):
         return
 
     def repl(match):
-        key = match.group(1).strip()
+        key = _match_key(match)
         return str(values.get(key, match.group(0)))
 
     new_text = PLACEHOLDER_RE.sub(repl, full_text)

@@ -17,9 +17,20 @@ const FIELDS = [
   { name: 'data_contract', label: 'Data contract', type: 'date', required: true },
   { name: 'proiectant', label: 'Proiectant', required: true },
   { name: 'executant', label: 'Executant', required: true },
+  // VGD block
   { name: 'verificator_vgd', label: 'Verificator VGD', required: true },
+  { name: 'atestat_vgd', label: 'Atestat VGD (ANRE)' },
+  { name: 'data_verificare_vgd', label: 'Data verificare VGD', type: 'date' },
+  { name: 'status_vgd', label: 'Status VGD', placeholder: 'în curs / aprobat / respins' },
+  { name: 'observatii_vgd', label: 'Observații VGD', col: 2, textarea: true },
+  // RTE block
   { name: 'responsabil_rte', label: 'Responsabil RTE', required: true },
-  { name: 'observatii', label: 'Observații', placeholder: 'Note suplimentare despre lucrare', col: 2, textarea: true },
+  { name: 'autorizatie_rte', label: 'Autorizație RTE (ANRE)' },
+  { name: 'data_verificare_rte', label: 'Data verificare RTE', type: 'date' },
+  { name: 'status_rte', label: 'Status RTE', placeholder: 'în curs / aprobat / respins' },
+  { name: 'observatii_rte', label: 'Observații RTE', col: 2, textarea: true },
+  // General
+  { name: 'observatii', label: 'Observații generale', placeholder: 'Note suplimentare despre lucrare', col: 2, textarea: true },
 ];
 
 export default function ProjectData() {
