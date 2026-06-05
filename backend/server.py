@@ -191,6 +191,12 @@ async def upload_stamp(file: UploadFile = File(...), name: Optional[str] = Form(
     if not (ct.startswith("image/") or file.filename.lower().endswith((".png", ".jpg", ".jpeg"))):
         raise HTTPException(status_code=400, detail="Se acceptă doar imagini PNG/JPG")
     data = await file.read()
+    # Validate it's a real image
+    try:
+        from PIL import Image
+        Image.open(io.BytesIO(data)).verify()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Imagine invalidă sau coruptă")
     stamp_id = new_id("stm_")
     doc = {
         "stamp_id": stamp_id,
