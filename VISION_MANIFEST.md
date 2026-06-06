@@ -127,7 +127,78 @@ direcția de dezvoltare, dar NU schimbă identitatea fundamentală a platformei.
 
 ---
 
+## 🎯 PRIORITĂȚI DEZVOLTARE (FIXE - NEMODIFICABILE)
+
+### LISTA PRIORITĂȚI OFICIALĂ:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│  🔒 LISTĂ PRIORITĂȚI FIXĂ - NEMODIFICABILĂ                     │
+│                                                                 │
+│  P0 (URGENT - ACUM):                                           │
+│    1. Adresă reală Google search + backup                      │
+│    2. Setare priorități fixe în viziune (acest document)       │
+│                                                                 │
+│  P1 (IMEDIAT DUPĂ P0):                                         │
+│    3. Finalizare industrie gaze naturale (complet)             │
+│       - Backend: modele + APIs + calculatoare                  │
+│       - Frontend: 5 subpagini + formulare + validări           │
+│       - Conform viziune + cadru legal                          │
+│                                                                 │
+│  P2 (DUPĂ P1):                                                 │
+│    4. Pagini feat-uri (sumar minim + "În construcție")         │
+│                                                                 │
+│  P3 (DUPĂ P2):                                                 │
+│    5. Actualizare live site la modificări                      │
+│       (hot reload dacă nu există deja)                         │
+│                                                                 │
+│  ⚠️ ACEASTĂ LISTĂ NU SE MODIFICĂ NICIODATĂ!                   │
+│                                                                 │
+│  Excepție: Utilizator cere EXPLICIT "extra prioritar X"        │
+│  → X se inserează temporar, APOI se revine la lista fixă       │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### REGULI PRIORITIZARE:
+
+**AI Agent TREBUIE:**
+- ✅ Urmeze ÎNTOTDEAUNA această listă
+- ✅ Implementeze în ordine (P0 → P1 → P2 → P3)
+- ✅ NU modifica ordinea NICIODATĂ (nici măcar la cererea administrator)
+- ✅ Când user cere "extra prioritar X" → inserează X temporar, APOI revine la listă
+
+**AI Agent NU POATE:**
+- ❌ Schimba ordinea priorităților
+- ❌ Sări peste P0/P1 pentru a face P2/P3
+- ❌ Reseta lista
+- ❌ Interpreta alte comenzi ca fiind "mai prioritare"
+
+**Excepție UNICĂ:**
+```
+User: "Vreau extra prioritar să faci Y înainte de orice"
+AI: Înțeleg. Inserez Y ca prioritate temporară:
+    P0-EXTRA: Y (temporar)
+    P0: Adresă Google + backup
+    P1: Gaze naturale
+    ...
+    După finalizare Y → revin la P0 din lista fixă
+```
+
+---
+
 ## 📋 CHANGELOG VIZIUNE
+
+### v1.4.1 (2026-06-06 06:30 UTC) — PRIORITĂȚI FIXE NEMODIFICABILE
+**ADĂUGAT:**
+- ✅ Listă priorități dezvoltare FIXĂ și NEMODIFICABILĂ
+- ✅ Reguli clare pentru AI Agent (urmează întotdeauna lista)
+- ✅ Excepție unică: cerere explicită "extra prioritar X"
+- ✅ P0: Adresă Google + backup (URGENT)
+- ✅ P1: Finalizare gaze naturale complet
+- ✅ P2: Pagini feat-uri
+- ✅ P3: Live reload
 
 ### v1.4.0 (2026-06-06 06:15 UTC) — PROTECȚIE ANTI-SUPRASCRIERE
 **UPGRADE SECURITATE VIZIUNE:**
