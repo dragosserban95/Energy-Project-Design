@@ -45,6 +45,7 @@ import pdf_export
 import github_push
 import handoff as handoff_module
 import verification as verification_module
+import payment_accounts as pay_accounts
 import hashlib
 
 from emergentintegrations.payments.stripe.checkout import (
@@ -1341,7 +1342,73 @@ async def get_vision(user: User = Depends(get_current_user)):
 # ====================== ROOT ======================
 @api.get("/")
 async def root():
-    return {"app": "Energy Project Design Services", "version": "4.5", "status": "ok"}
+    return {"app": "Energy Project Design Services", "version": "4.9", "status": "ok"}
+
+
+# ====================== PAYMENT ACCOUNTS (admin / public) ======================
+@api.get("/payment-accounts/active")
+async def get_active_payment_account():
+    """Public — returns the currently active receiving account for SEPA bank transfers."""
+    acc = await pay_accounts.get_active_account()
+    if not acc:
+        return {"available": False, "message": "Niciun cont activ configurat pentru transfer bancar."}
+    return {
+        "available": True,
+        "account_holder": acc["account_holder"],
+        "iban": acc["iban"],
+        "swift_bic": acc.get("swift_bic"),
+        "bank_name": acc["bank_name"],
+        "currency": acc["currency"],
+        "status": acc["status"],
+        "notes": acc.get("notes"),
+    }
+
+
+@api.get("/admin/payment-accounts")
+async def admin_list_payment_accounts(include_disabled: bool = False, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    return await pay_accounts.list_accounts(include_disabled=include_disabled)
+
+
+@api.post("/admin/payment-accounts")
+async def admin_create_payment_account(payload: pay_accounts.PaymentAccountIn, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    account_id = new_id("acc_")
+    doc = await pay_accounts.create_account(payload, account_id)
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user.user_id, "action": "admin.payment_accounts.create",
+        "meta": {"account_id": account_id, "iban_last4": doc["iban"][-4:], "status": doc["status"]},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return doc
+
+
+@api.patch("/admin/payment-accounts/{account_id}")
+async def admin_update_payment_account(account_id: str, payload: dict, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    res = await pay_accounts.update_account(account_id, payload)
+    if not res:
+        raise HTTPException(status_code=404, detail="Cont inexistent")
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user.user_id, "action": "admin.payment_accounts.update",
+        "meta": {"account_id": account_id, "fields": list(payload.keys())},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return res
+
+
+@api.delete("/admin/payment-accounts/{account_id}")
+async def admin_delete_payment_account(account_id: str, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    ok = await pay_accounts.delete_account(account_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Cont inexistent")
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user.user_id, "action": "admin.payment_accounts.delete",
+        "meta": {"account_id": account_id},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"deleted": True}
 
 
 app.include_router(api)
@@ -1375,6 +1442,8 @@ async def on_startup():
     try:
         await system_templates.seed_system_templates(db)
         logger.info("System templates seeded.")
+        await pay_accounts.seed_default_account()
+        logger.info("Default payment account seeded.")
         # Upgrade developer accounts on every startup
         await db.users.update_many(
             {"email": {"$in": list(DEVELOPER_EMAILS)}},
