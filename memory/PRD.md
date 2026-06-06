@@ -68,6 +68,18 @@ B2B SaaS for Romanian engineering documentation, starting with **gas naturale** 
 - P2: Public verification page `/verify/{doc_id}`
 - P3: Encrypt action_logs and gmail_app_password at rest
 
+## V4.9 — Forum + Lifecycle + Company + Payment Accounts (2026-02-06)
+- ✅ **Payment Accounts** module (Revolut IBAN pre-seed TEST) + admin CRUD /admin/payment-accounts + public /payment-accounts/active pentru SEPA bank transfer
+- ✅ **Forum** comunitate cu 9 industrii (8 + general), threads + replies + likes + views, auto-strip secrete, compose modal cu tags, developer poate șterge orice
+- ✅ **Project Lifecycle** — 12 statusuri (Schiță → Arhivat) cu badges colorate, auto-detect din state + manual override
+- ✅ **Smart Audit Score** ponderat pe 7 secțiuni (project 20%, technical 25%, calc 15%, etc.)
+- ✅ **Next Best Action Engine** — un singur CTA per ecran, prioritizat după severity (high/medium/low)
+- ✅ **LifecycleWidget** vizibil pe Dashboard cu Status + Score progress bar + NBA + breakdown
+- ✅ **Company Profile** — 15 câmpuri firmă în 5 secțiuni (identitate, sediu, contact, bancă, repr.) cu auto-generare 15 placeholdere pentru DOCX/email-uri
+- ✅ **Industries Roadmap** complet (`docs/INDUSTRIES_ROADMAP.md`) — 158 sub-domenii planificate pentru toate 8 industriile
+- 🟡 Stripe live key — așteaptă cheia `sk_live_...` de la user
+- 🟡 QES real — așteaptă contract certSIGN/DigiSign
+
 ## V4.8 — Cross-account Emergent transfer + security + breadth (2026-02-06)
 - ✅ `render.yaml` blueprint pentru auto-deploy Render (backend + frontend static)
 - ✅ `backend/github_push.py` + `POST /api/dev/github/push` — developer push direct în repo
