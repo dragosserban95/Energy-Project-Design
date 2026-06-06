@@ -5,6 +5,7 @@ import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { FileText, Stamp, ShieldCheck, FileCheck2, ArrowRight, Plus, Activity } from 'lucide-react';
+import LifecycleWidget from '../components/LifecycleWidget';
 
 export default function Dashboard() {
   const { user, refresh } = useAuth();
@@ -69,6 +70,7 @@ export default function Dashboard() {
 
   return (
     <AppShell title={`Bun venit, ${user?.name?.split(' ')[0] || ''}`}>
+      <LifecycleWidget />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-gray-200 border border-gray-200 mb-10 stagger" data-testid="dashboard-stats">
         {stats.map((s) => {
           const Icon = s.icon;
