@@ -4,7 +4,7 @@ import AppShell from '../components/AppShell';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-import { Github, RefreshCw, Send, Plus, Trash2, ExternalLink, Lock, ShieldAlert, Rocket, FileCode } from 'lucide-react';
+import { Github, RefreshCw, Send, Plus, Trash2, ExternalLink, Lock, ShieldAlert, Rocket, FileCode, Download, BookOpen } from 'lucide-react';
 
 const DEFAULT_FILE = { path: '', content: '' };
 
@@ -19,6 +19,8 @@ export default function DeveloperGithub() {
   const [files, setFiles] = useState([{ ...DEFAULT_FILE }]);
   const [busy, setBusy] = useState(false);
   const [lastResult, setLastResult] = useState(null);
+  const [handoff, setHandoff] = useState(null);
+  const [handoffBusy, setHandoffBusy] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -32,7 +34,7 @@ export default function DeveloperGithub() {
   async function loadStatus() {
     setLoading(true);
     try {
-      const { data } = await api.get('/api/dev/github/status');
+      const { data } = await api.get('/dev/github/status');
       setStatus(data);
     } catch (e) {
       toast.error('Nu pot citi statusul GitHub. Verifică GITHUB_TOKEN în backend/.env.');
@@ -56,7 +58,7 @@ export default function DeveloperGithub() {
     setBusy(true);
     setLastResult(null);
     try {
-      const { data } = await api.post('/api/dev/github/push', {
+      const { data } = await api.post('/dev/github/push', {
         prompt: prompt.trim(),
         commit_message: commitMessage.trim(),
         files: validFiles,
@@ -69,6 +71,56 @@ export default function DeveloperGithub() {
       toast.error(e?.response?.data?.detail || 'Push eșuat. Verifică tokenul și secret-ul.');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function previewHandoff() {
+    setHandoffBusy(true);
+    try {
+      const { data } = await api.get('/dev/handoff/export');
+      setHandoff(data);
+      toast.success(`Handoff generat (${data.size_chars.toLocaleString('ro-RO')} caractere).`);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Generare handoff eșuată.');
+    } finally {
+      setHandoffBusy(false);
+    }
+  }
+
+  function downloadHandoff() {
+    if (!handoff) return;
+    const blob = new Blob([handoff.markdown], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = handoff.filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  async function copyHandoff() {
+    if (!handoff) return;
+    try {
+      await navigator.clipboard.writeText(handoff.markdown);
+      toast.success('Handoff copiat în clipboard. Lipește-l în chat-ul Emergent nou.');
+    } catch {
+      toast.error('Clipboard indisponibil. Folosește butonul „Descarcă".');
+    }
+  }
+
+  async function pushHandoffToRepo() {
+    setHandoffBusy(true);
+    try {
+      const { data } = await api.post('/dev/handoff/push');
+      toast.success(`Handoff push-uit (${data.size_chars.toLocaleString('ro-RO')} caractere). ${data.commit_url ? 'Vezi pe GitHub.' : ''}`);
+      window.open(data.file_url, '_blank');
+      await loadStatus();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Push handoff eșuat.');
+    } finally {
+      setHandoffBusy(false);
     }
   }
 
@@ -100,6 +152,58 @@ export default function DeveloperGithub() {
           >
             <RefreshCw className="w-4 h-4" /> Reîncarcă status
           </button>
+        </div>
+
+        {/* Handoff banner — transfer pe alt cont Emergent */}
+        <div className="border-2 border-black bg-black text-[#FFB300] p-5 mb-8" data-testid="handoff-card">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <BookOpen className="w-6 h-6 shrink-0 mt-0.5" />
+              <div>
+                <h2 className="font-bold text-lg">Transfer pe alt cont Emergent</h2>
+                <p className="text-xs text-white/80 mt-1 max-w-2xl">
+                  Generează un fișier <code className="bg-white/10 px-1">HANDOFF_FOR_NEXT_EMERGENT.md</code> cu starea curentă a proiectului (vision, commits, env keys, next actions). Îl descarci, îl partajezi sau îl lipești într-un chat Emergent nou — celălalt user continuă de aici fără pierderi.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 shrink-0">
+              <button
+                onClick={previewHandoff}
+                disabled={handoffBusy}
+                className="px-3 py-2 text-xs border border-[#FFB300] hover:bg-[#FFB300] hover:text-black flex items-center gap-1.5 disabled:opacity-50"
+                data-testid="handoff-preview-btn"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${handoffBusy ? 'animate-spin' : ''}`} /> Generează preview
+              </button>
+              <button
+                onClick={pushHandoffToRepo}
+                disabled={handoffBusy}
+                className="px-3 py-2 text-xs bg-[#FFB300] text-black hover:bg-white flex items-center gap-1.5 disabled:opacity-50 font-semibold"
+                data-testid="handoff-push-btn"
+              >
+                <Github className="w-3.5 h-3.5" /> Salvează în GitHub (commit)
+              </button>
+            </div>
+          </div>
+
+          {handoff && (
+            <div className="mt-5 bg-white text-black p-4" data-testid="handoff-preview">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-3">
+                <div className="text-xs">
+                  <strong>{handoff.filename}</strong> · {handoff.size_chars.toLocaleString('ro-RO')} caractere
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={copyHandoff} className="px-3 py-1.5 text-xs border border-black hover:bg-black hover:text-[#FFB300] flex items-center gap-1.5" data-testid="handoff-copy-btn">
+                    Copiază în clipboard
+                  </button>
+                  <button onClick={downloadHandoff} className="px-3 py-1.5 text-xs border border-black bg-black text-[#FFB300] hover:bg-white hover:text-black flex items-center gap-1.5" data-testid="handoff-download-btn">
+                    <Download className="w-3.5 h-3.5" /> Descarcă .md
+                  </button>
+                </div>
+              </div>
+              <pre className="text-[10px] font-mono bg-gray-50 p-3 max-h-72 overflow-auto whitespace-pre-wrap border border-gray-200">{handoff.markdown.slice(0, 4000)}{handoff.markdown.length > 4000 ? '\n\n…(preview trunchiat — descarcă fișierul complet)' : ''}</pre>
+            </div>
+          )}
         </div>
 
         {/* Status banner */}
