@@ -5,7 +5,7 @@ import LicenseTimer from './LicenseTimer';
 import {
   LayoutDashboard, ClipboardList, Settings2, Calculator, FileText, FileCheck2,
   Stamp, ShieldCheck, Mail, BadgeCheck, GaugeCircle, CreditCard, Settings, LogOut,
-  Sparkles, Wrench, ListChecks, Flame, ChevronRight, FolderKanban, Github, Banknote,
+  Sparkles, Wrench, ListChecks, Flame, ChevronRight, FolderKanban, Github, Banknote, MessageSquare,
 } from 'lucide-react';
 
 const SECTIONS = [
@@ -33,6 +33,7 @@ const SECTIONS = [
     title: 'Comunicare & Control',
     items: [
       { to: '/email', label: 'Email-uri', icon: Mail, tid: 'nav-email' },
+      { to: '/forum', label: 'Forum comunitate', icon: MessageSquare, tid: 'nav-forum' },
       { to: '/verifica', label: 'Verifică documentație', icon: GaugeCircle, tid: 'nav-verifica' },
       { to: '/ai', label: 'AI Assistant', icon: Sparkles, tid: 'nav-ai' },
       { to: '/audit', label: 'Audit interfață', icon: ListChecks, tid: 'nav-audit' },
