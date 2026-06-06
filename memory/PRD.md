@@ -68,13 +68,18 @@ B2B SaaS for Romanian engineering documentation, starting with **gas naturale** 
 - P2: Public verification page `/verify/{doc_id}`
 - P3: Encrypt action_logs and gmail_app_password at rest
 
-## V4.8 — Cross-account Emergent transfer (2026-02-06)
+## V4.8 — Cross-account Emergent transfer + security + breadth (2026-02-06)
 - ✅ `render.yaml` blueprint pentru auto-deploy Render (backend + frontend static)
 - ✅ `backend/github_push.py` + `POST /api/dev/github/push` — developer push direct în repo
 - ✅ Pagina `/developer/github` cu UI completă: status repo, lista commits, formular push fișiere
 - ✅ `backend/handoff.py` + `GET /api/dev/handoff/export` + `POST /api/dev/handoff/push`
-- ✅ Buton "Salvează în GitHub" pe pagina developer → commit-uie `HANDOFF_FOR_NEXT_EMERGENT.md` în rădăcina repo-ului (15.6KB snapshot)
-- ✅ 120 fișiere push-uite în [`dragosserban95/Energy-Project-Design`](https://github.com/dragosserban95/Energy-Project-Design) (backend 20 + frontend 95 + deploy 5)
+- ✅ Buton "Salvează în GitHub" pe pagina developer → commit-uie `HANDOFF_FOR_NEXT_EMERGENT.md` în rădăcina repo-ului
+- ✅ 120+ fișiere push-uite în [`dragosserban95/Energy-Project-Design`](https://github.com/dragosserban95/Energy-Project-Design)
+- ✅ **Refactor auth → httpOnly Secure SameSite=None cookies** (XSS-safe; token nu mai e în localStorage)
+- ✅ **Refactor `verify_documentation()`** (93 linii → modulul `verification.py` cu helper pure-function pentru fiecare check)
+- ✅ **Refactor `Developer.jsx`** (185 linii → 1 page + 3 sub-componente focusate: AccessDenied, ResultPanel, Sidebar)
+- ✅ **Activare toate 8 industriile**: Gaze (5 subdom), Electrică (5), Apă & canalizare (5), Construcții civile (3), Telecomunicații (3), Fotovoltaice (4), Construcții imobile (5), Infrastructură feroviară (4) = **34 subdomenii active**
+- ✅ CORS configurat pentru cookies cross-site (regex pentru `emergentagent.com`, `onrender.com`, `localhost:3000`)
 
 ## Handoff (for any AI / human developer)
 - Code root: `/app/` (backend `/app/backend`, frontend `/app/frontend`)

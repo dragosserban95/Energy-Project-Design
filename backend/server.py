@@ -44,6 +44,7 @@ import system_templates
 import pdf_export
 import github_push
 import handoff as handoff_module
+import verification as verification_module
 import hashlib
 
 from emergentintegrations.payments.stripe.checkout import (
@@ -74,9 +75,19 @@ def _user_from_doc(doc: dict) -> User:
 PLANS = {p["id"]: {"name": p["name"], "amount": float(p["price_eur"]), "currency": p["currency"], "documents_per_month": p["documents_per_month"]} for p in plans_module.PLANS.values() if not p.get("internal")}
 
 
+def _set_session_cookie(response: Response, token: str):
+    """Set the auth token as an httpOnly cookie. Secure + SameSite=None (cross-site OK)."""
+    max_age = int(os.environ.get("JWT_EXPIRE_HOURS", "168")) * 3600
+    response.set_cookie(
+        key="session_token", value=token,
+        httponly=True, secure=True, samesite="none", path="/",
+        max_age=max_age,
+    )
+
+
 # ====================== AUTH ======================
 @api.post("/auth/register", response_model=AuthResponse)
-async def register(payload: UserRegisterV2):
+async def register(payload: UserRegisterV2, response: Response):
     existing = await db.users.find_one({"email": payload.email.lower()}, {"_id": 0})
     if existing:
         raise HTTPException(status_code=400, detail="Email-ul este deja înregistrat")
@@ -105,11 +116,12 @@ async def register(payload: UserRegisterV2):
         "meta": {"email": user_doc["email"]}, "created_at": user_doc["created_at"],
     })
     token = create_jwt(user_id)
+    _set_session_cookie(response, token)
     return AuthResponse(token=token, user=_user_from_doc(user_doc))
 
 
 @api.post("/auth/login", response_model=AuthResponse)
-async def login(payload: UserLogin):
+async def login(payload: UserLogin, response: Response):
     user_doc = await db.users.find_one({"email": payload.email.lower()})
     if not user_doc or not user_doc.get("password_hash"):
         raise HTTPException(status_code=401, detail="Credențiale invalide")
@@ -125,6 +137,7 @@ async def login(payload: UserLogin):
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
     token = create_jwt(user_doc["user_id"])
+    _set_session_cookie(response, token)
     return AuthResponse(token=token, user=_user_from_doc(user_doc))
 
 
@@ -878,98 +891,16 @@ async def ai_parse(payload: AIQuery, user: User = Depends(get_current_user)):
 @api.get("/verification")
 async def verify_documentation(user: User = Depends(get_current_user)):
     proj = await _get_or_create_default_project(user.user_id)
-    td = proj.get("technical_data") or {}
-    calc = proj.get("calc_results") or {}
-
-    tpl_count = await db.templates.count_documents({"user_id": user.user_id})
-    doc_count = await db.documents.count_documents({"user_id": user.user_id})
-    stamp_count = await db.stamps.count_documents({"user_id": user.user_id})
-    cert_count = await db.certifications_internal.count_documents({"user_id": user.user_id})
-
-    plan_cfg = plans_module.get_plan(user.plan)
-    checks = []
-
-    proj_completion = _completion(proj)
-    checks.append({
-        "key": "project_data", "label": "Date proiect",
-        "status": "ok" if proj_completion == 100 else ("warning" if proj_completion >= 50 else "missing"),
-        "score": proj_completion, "severity": "high",
-        "detail": f"Completare: {proj_completion}%. Câmpuri lipsă: " + (", ".join([f for f in REQUIRED_PROJECT_FIELDS if not str(proj.get(f) or '').strip()]) or "niciun"),
-        "fix_url": "/proiect",
-    })
-
-    tech_req = ["debit_instalat", "presiune_regim", "diametru_conducta", "material_conducta", "lungime_bransament"]
-    tech_filled = sum(1 for f in tech_req if td.get(f) not in (None, "", 0))
-    tech_score = round(100.0 * tech_filled / len(tech_req), 1)
-    checks.append({
-        "key": "technical_data", "label": "Date tehnice",
-        "status": "ok" if tech_score == 100 else ("warning" if tech_score >= 50 else "missing"),
-        "score": tech_score, "severity": "high",
-        "detail": f"Completare: {tech_score}%.",
-        "fix_url": "/tehnice",
-    })
-
-    calc_status = "ok" if calc and any(r.get("status") == "ok" for r in calc.values()) else "missing"
-    checks.append({
-        "key": "smart_calc", "label": "Calcul inteligent",
-        "status": calc_status, "score": 100 if calc_status == "ok" else 0,
-        "severity": "medium",
-        "detail": "Rezultatele calculului sunt disponibile." if calc_status == "ok" else "Calculul nu a fost rulat.",
-        "fix_url": "/calcul",
-    })
-
-    checks.append({
-        "key": "templates", "label": "Șabloane încărcate",
-        "status": "ok" if tpl_count > 0 else "missing",
-        "score": 100 if tpl_count > 0 else 0, "severity": "medium",
-        "detail": f"{tpl_count} șabloane disponibile.",
-        "fix_url": "/templates",
-    })
-
-    checks.append({
-        "key": "documents", "label": "Documente generate",
-        "status": "ok" if doc_count > 0 else "warning",
-        "score": 100 if doc_count > 0 else 0, "severity": "low",
-        "detail": f"{doc_count} documente.",
-        "fix_url": "/documents",
-    })
-
-    checks.append({
-        "key": "stamps", "label": "Ștampile autorizate",
-        "status": "ok" if stamp_count > 0 else "warning",
-        "score": 100 if stamp_count > 0 else 0, "severity": "medium",
-        "detail": f"{stamp_count} ștampile.",
-        "fix_url": "/stamps",
-    })
-
-    checks.append({
-        "key": "certifications", "label": "Certificări interne (VGD/RTE)",
-        "status": "ok" if cert_count > 0 else "warning",
-        "score": 100 if cert_count > 0 else 0, "severity": "medium",
-        "detail": f"{cert_count} certificări înregistrate.",
-        "fix_url": "/certificari",
-    })
-
-    checks.append({
-        "key": "plan", "label": "Plan utilizator",
-        "status": "ok" if user.plan != "basic" else "warning",
-        "score": 100 if plan_cfg.get("export_allowed") else 50,
-        "severity": "low",
-        "detail": f"Plan curent: {plan_cfg['name']} ({plan_cfg['label']}). Export: " + ("permis" if plan_cfg.get("export_allowed") else "interzis"),
-        "fix_url": "/pricing",
-    })
-
-    overall = round(sum(c["score"] for c in checks) / max(1, len(checks)), 1)
-    return {
-        "overall_score": overall,
-        "checks": checks,
-        "summary": {
-            "ok": sum(1 for c in checks if c["status"] == "ok"),
-            "warning": sum(1 for c in checks if c["status"] == "warning"),
-            "missing": sum(1 for c in checks if c["status"] == "missing"),
-        },
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+    counts = {
+        "templates": await db.templates.count_documents({"user_id": user.user_id}),
+        "documents": await db.documents.count_documents({"user_id": user.user_id}),
+        "stamps": await db.stamps.count_documents({"user_id": user.user_id}),
+        "certifications": await db.certifications_internal.count_documents({"user_id": user.user_id}),
     }
+    plan_cfg = plans_module.get_plan(user.plan)
+    return verification_module.build_report(
+        project=proj, counts=counts, plan_name=user.plan, plan_cfg=plan_cfg,
+    )
 
 
 # ====================== AUDIT ======================
@@ -1414,14 +1345,29 @@ async def root():
 
 
 app.include_router(api)
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-)
+
+# CORS: when credentials are required, browsers reject "*" origin. Use a regex
+# that matches the Emergent preview URL pattern + Render production URL. Override
+# via CORS_ORIGINS env (comma-separated explicit origins) if needed.
+_cors_env = os.environ.get("CORS_ORIGINS", "").strip()
+if _cors_env and _cors_env != "*":
+    app.add_middleware(
+        CORSMiddleware,
+        allow_credentials=True,
+        allow_origins=[o.strip() for o in _cors_env.split(",") if o.strip()],
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_credentials=True,
+        allow_origin_regex=r"https://([a-z0-9-]+\.)*(emergentagent\.com|onrender\.com|emergent\.host)|http://localhost:3000",
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
 
 
 @app.on_event("startup")
