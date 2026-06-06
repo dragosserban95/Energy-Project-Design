@@ -44,6 +44,7 @@ const SECTIONS = [
     items: [
       { to: '/company', label: 'Profil societate', icon: Building2, tid: 'nav-company' },
       { to: '/pricing', label: 'Planuri & achiziții', icon: CreditCard, tid: 'nav-pricing' },
+      { to: '/logs', label: 'Registru audit', icon: ListChecks, tid: 'nav-logs' },
       { to: '/settings', label: 'Setări', icon: Settings, tid: 'nav-settings' },
     ],
   },
