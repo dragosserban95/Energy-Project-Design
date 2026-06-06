@@ -47,6 +47,7 @@ import handoff as handoff_module
 import verification as verification_module
 import payment_accounts as pay_accounts
 import forum as forum_module
+import project_lifecycle as lifecycle
 import hashlib
 
 from emergentintegrations.payments.stripe.checkout import (
@@ -1480,6 +1481,55 @@ async def forum_delete_thread(thread_id: str, user: User = Depends(get_current_u
     if not ok:
         raise HTTPException(status_code=404, detail="Discuție inexistentă")
     return {"deleted": True}
+
+
+# ====================== PROJECT LIFECYCLE ======================
+@api.get("/lifecycle/statuses")
+async def lifecycle_statuses():
+    """Public — return the catalog of project lifecycle statuses."""
+    return {"statuses": lifecycle.STATUSES}
+
+
+@api.get("/lifecycle/current")
+async def lifecycle_current(user: User = Depends(get_current_user)):
+    """Returns current detected status + smart audit score + next best action for the active project."""
+    proj = await _get_or_create_default_project(user.user_id)
+    counts = {
+        "templates": await db.templates.count_documents({"user_id": user.user_id}),
+        "documents": await db.documents.count_documents({"user_id": user.user_id}),
+        "stamps": await db.stamps.count_documents({"user_id": user.user_id}),
+        "certifications": await db.certifications_internal.count_documents({"user_id": user.user_id}),
+    }
+    plan_cfg = plans_module.get_plan(user.plan)
+    detected = lifecycle.detect_status(proj, counts)
+    score = lifecycle.smart_audit_score(proj, counts)
+    action = lifecycle.next_best_action(proj, counts, plan_cfg)
+    return {
+        "current_status": detected,
+        "status_meta": lifecycle.status_meta(detected),
+        "score": score,
+        "next_best_action": action,
+        "counts": counts,
+    }
+
+
+@api.post("/lifecycle/set-status")
+async def lifecycle_set_status(payload: dict, user: User = Depends(get_current_user)):
+    """Manual override — sets the status on the active project."""
+    new_status = (payload or {}).get("status", "").strip()
+    if new_status not in lifecycle.STATUS_BY_ID:
+        raise HTTPException(status_code=400, detail=f"Status invalid. Valid: {list(lifecycle.STATUS_BY_ID.keys())}")
+    proj = await _get_or_create_default_project(user.user_id)
+    await db.projects.update_one(
+        {"project_id": proj["project_id"], "user_id": user.user_id},
+        {"$set": {"status": new_status, "status_changed_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user.user_id, "action": "lifecycle.set_status",
+        "meta": {"project_id": proj["project_id"], "from": proj.get("status"), "to": new_status},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"status": new_status, "meta": lifecycle.status_meta(new_status)}
 
 
 app.include_router(api)
