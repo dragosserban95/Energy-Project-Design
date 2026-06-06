@@ -75,9 +75,19 @@ def _user_from_doc(doc: dict) -> User:
 PLANS = {p["id"]: {"name": p["name"], "amount": float(p["price_eur"]), "currency": p["currency"], "documents_per_month": p["documents_per_month"]} for p in plans_module.PLANS.values() if not p.get("internal")}
 
 
+def _set_session_cookie(response: Response, token: str):
+    """Set the auth token as an httpOnly cookie. Secure + SameSite=None (cross-site OK)."""
+    max_age = int(os.environ.get("JWT_EXPIRE_HOURS", "168")) * 3600
+    response.set_cookie(
+        key="session_token", value=token,
+        httponly=True, secure=True, samesite="none", path="/",
+        max_age=max_age,
+    )
+
+
 # ====================== AUTH ======================
 @api.post("/auth/register", response_model=AuthResponse)
-async def register(payload: UserRegisterV2):
+async def register(payload: UserRegisterV2, response: Response):
     existing = await db.users.find_one({"email": payload.email.lower()}, {"_id": 0})
     if existing:
         raise HTTPException(status_code=400, detail="Email-ul este deja înregistrat")
@@ -106,11 +116,12 @@ async def register(payload: UserRegisterV2):
         "meta": {"email": user_doc["email"]}, "created_at": user_doc["created_at"],
     })
     token = create_jwt(user_id)
+    _set_session_cookie(response, token)
     return AuthResponse(token=token, user=_user_from_doc(user_doc))
 
 
 @api.post("/auth/login", response_model=AuthResponse)
-async def login(payload: UserLogin):
+async def login(payload: UserLogin, response: Response):
     user_doc = await db.users.find_one({"email": payload.email.lower()})
     if not user_doc or not user_doc.get("password_hash"):
         raise HTTPException(status_code=401, detail="Credențiale invalide")
@@ -126,6 +137,7 @@ async def login(payload: UserLogin):
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
     token = create_jwt(user_doc["user_id"])
+    _set_session_cookie(response, token)
     return AuthResponse(token=token, user=_user_from_doc(user_doc))
 
 
@@ -1333,14 +1345,29 @@ async def root():
 
 
 app.include_router(api)
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-)
+
+# CORS: when credentials are required, browsers reject "*" origin. Use a regex
+# that matches the Emergent preview URL pattern + Render production URL. Override
+# via CORS_ORIGINS env (comma-separated explicit origins) if needed.
+_cors_env = os.environ.get("CORS_ORIGINS", "").strip()
+if _cors_env and _cors_env != "*":
+    app.add_middleware(
+        CORSMiddleware,
+        allow_credentials=True,
+        allow_origins=[o.strip() for o in _cors_env.split(",") if o.strip()],
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_credentials=True,
+        allow_origin_regex=r"https://([a-z0-9-]+\.)*(emergentagent\.com|onrender\.com|emergent\.host)|http://localhost:3000",
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
 
 
 @app.on_event("startup")
