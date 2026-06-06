@@ -46,6 +46,7 @@ import github_push
 import handoff as handoff_module
 import verification as verification_module
 import payment_accounts as pay_accounts
+import forum as forum_module
 import hashlib
 
 from emergentintegrations.payments.stripe.checkout import (
@@ -1411,7 +1412,78 @@ async def admin_delete_payment_account(account_id: str, user: User = Depends(get
     return {"deleted": True}
 
 
+# Forum routes appended below — include_router moved to end of file.
+
+
+# ====================== FORUM (registered above include_router) ======================
+# Note: forum routes are defined here and then re-included below.
+@api.get("/forum/industry-stats")
+async def forum_industry_stats():
+    return await forum_module.industry_stats()
+
+
+@api.get("/forum/threads")
+async def forum_list_threads(industry: Optional[str] = None, sort: str = "recent", limit: int = 50):
+    return await forum_module.list_threads(industry=industry, sort=sort, limit=min(limit, 100))
+
+
+@api.get("/forum/threads/{thread_id}")
+async def forum_get_thread(thread_id: str):
+    thread = await forum_module.get_thread(thread_id, increment_view=True)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Discuție inexistentă")
+    replies = await forum_module.list_replies(thread_id)
+    return {"thread": thread, "replies": replies}
+
+
+@api.post("/forum/threads")
+async def forum_create_thread(payload: forum_module.ThreadCreate, user: User = Depends(get_current_user)):
+    try:
+        thread_id = new_id("thr_")
+        doc = await forum_module.create_thread(user, payload, thread_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user.user_id, "action": "forum.thread.create",
+        "meta": {"thread_id": thread_id, "industry": payload.industry, "title": payload.title[:80]},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return doc
+
+
+@api.post("/forum/threads/{thread_id}/replies")
+async def forum_create_reply(thread_id: str, payload: forum_module.ReplyCreate, user: User = Depends(get_current_user)):
+    reply_id = new_id("rep_")
+    doc = await forum_module.create_reply(user, thread_id, payload, reply_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Discuție inexistentă")
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user.user_id, "action": "forum.reply.create",
+        "meta": {"thread_id": thread_id, "reply_id": reply_id},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return doc
+
+
+@api.post("/forum/threads/{thread_id}/like")
+async def forum_like_thread(thread_id: str, user: User = Depends(get_current_user)):
+    likes = await forum_module.like_thread(thread_id, user.user_id)
+    if likes is None:
+        raise HTTPException(status_code=404, detail="Discuție inexistentă")
+    return {"likes": likes}
+
+
+@api.delete("/forum/threads/{thread_id}")
+async def forum_delete_thread(thread_id: str, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    ok = await forum_module.delete_thread(thread_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Discuție inexistentă")
+    return {"deleted": True}
+
+
 app.include_router(api)
+
 
 # CORS: when credentials are required, browsers reject "*" origin. Use a regex
 # that matches the Emergent preview URL pattern + Render production URL. Override
