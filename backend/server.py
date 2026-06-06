@@ -1533,7 +1533,77 @@ async def lifecycle_set_status(payload: dict, user: User = Depends(get_current_u
     return {"status": new_status, "meta": lifecycle.status_meta(new_status)}
 
 
-# ====================== COMPANY PROFILE ======================
+# ====================== AUDIT LOGS ======================
+@api.get("/logs")
+async def list_audit_logs(
+    action: Optional[str] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    limit: int = 100,
+    user: User = Depends(get_current_user),
+):
+    """User sees their own logs. Developer sees ALL logs."""
+    q = {} if user.is_developer else {"user_id": user.user_id}
+    if action:
+        q["action"] = {"$regex": action, "$options": "i"}
+    if from_date:
+        q.setdefault("created_at", {})["$gte"] = from_date
+    if to_date:
+        q.setdefault("created_at", {})["$lte"] = to_date
+    docs = await db.action_logs.find(q, {"_id": 0}).sort("created_at", -1).limit(min(limit, 500)).to_list(500)
+    return docs
+
+
+@api.get("/logs/actions")
+async def list_log_actions(user: User = Depends(get_current_user)):
+    """Return distinct action names — for the filter dropdown."""
+    q = {} if user.is_developer else {"user_id": user.user_id}
+    actions = await db.action_logs.distinct("action", q)
+    return sorted([a for a in actions if a])
+
+
+# ====================== DOCUMENT VERSIONING ======================
+@api.get("/documents/groups")
+async def list_document_groups(user: User = Depends(get_current_user)):
+    """Group documents by base name — returns groups with version count + latest version."""
+    docs = await db.documents.find(
+        {"user_id": user.user_id},
+        {"_id": 0, "data_b64": 0, "signature_b64": 0},
+    ).sort("created_at", -1).to_list(2000)
+    groups: Dict[str, Dict[str, Any]] = {}
+    for d in docs:
+        base = (d.get("name") or "Untitled").rsplit("_v", 1)[0]
+        if base not in groups:
+            groups[base] = {
+                "base_name": base,
+                "latest_id": d["document_id"],
+                "latest_name": d["name"],
+                "latest_created_at": d["created_at"],
+                "versions_count": 1,
+                "versions": [{"document_id": d["document_id"], "name": d["name"], "created_at": d["created_at"], "signed": d.get("signed"), "stamped": d.get("stamped")}],
+            }
+        else:
+            groups[base]["versions_count"] += 1
+            groups[base]["versions"].append({"document_id": d["document_id"], "name": d["name"], "created_at": d["created_at"], "signed": d.get("signed"), "stamped": d.get("stamped")})
+    return list(groups.values())
+
+
+@api.get("/documents/{document_id}/versions")
+async def get_document_versions(document_id: str, user: User = Depends(get_current_user)):
+    """List versions of the same base-name as the given document."""
+    doc = await db.documents.find_one({"document_id": document_id, "user_id": user.user_id}, {"_id": 0, "data_b64": 0, "signature_b64": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document negăsit")
+    base = (doc.get("name") or "").rsplit("_v", 1)[0]
+    if not base:
+        return [doc]
+    cursor = db.documents.find(
+        {"user_id": user.user_id, "name": {"$regex": f"^{base}"}},
+        {"_id": 0, "data_b64": 0, "signature_b64": 0},
+    ).sort("created_at", 1)
+    return await cursor.to_list(100)
+
+
 @api.get("/company-profile")
 async def get_company_profile(user: User = Depends(get_current_user)):
     return await company_module.get_profile(user.user_id)
