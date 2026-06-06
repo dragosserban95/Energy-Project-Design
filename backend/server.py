@@ -45,6 +45,10 @@ import pdf_export
 import github_push
 import handoff as handoff_module
 import verification as verification_module
+import payment_accounts as pay_accounts
+import forum as forum_module
+import project_lifecycle as lifecycle
+import company_profile as company_module
 import hashlib
 
 from emergentintegrations.payments.stripe.checkout import (
@@ -1341,10 +1345,220 @@ async def get_vision(user: User = Depends(get_current_user)):
 # ====================== ROOT ======================
 @api.get("/")
 async def root():
-    return {"app": "Energy Project Design Services", "version": "4.5", "status": "ok"}
+    return {"app": "Energy Project Design Services", "version": "4.9", "status": "ok"}
+
+
+# ====================== PAYMENT ACCOUNTS (admin / public) ======================
+@api.get("/payment-accounts/active")
+async def get_active_payment_account():
+    """Public — returns the currently active receiving account for SEPA bank transfers."""
+    acc = await pay_accounts.get_active_account()
+    if not acc:
+        return {"available": False, "message": "Niciun cont activ configurat pentru transfer bancar."}
+    return {
+        "available": True,
+        "account_holder": acc["account_holder"],
+        "iban": acc["iban"],
+        "swift_bic": acc.get("swift_bic"),
+        "bank_name": acc["bank_name"],
+        "currency": acc["currency"],
+        "status": acc["status"],
+        "notes": acc.get("notes"),
+    }
+
+
+@api.get("/admin/payment-accounts")
+async def admin_list_payment_accounts(include_disabled: bool = False, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    return await pay_accounts.list_accounts(include_disabled=include_disabled)
+
+
+@api.post("/admin/payment-accounts")
+async def admin_create_payment_account(payload: pay_accounts.PaymentAccountIn, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    account_id = new_id("acc_")
+    doc = await pay_accounts.create_account(payload, account_id)
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user.user_id, "action": "admin.payment_accounts.create",
+        "meta": {"account_id": account_id, "iban_last4": doc["iban"][-4:], "status": doc["status"]},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return doc
+
+
+@api.patch("/admin/payment-accounts/{account_id}")
+async def admin_update_payment_account(account_id: str, payload: dict, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    res = await pay_accounts.update_account(account_id, payload)
+    if not res:
+        raise HTTPException(status_code=404, detail="Cont inexistent")
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user.user_id, "action": "admin.payment_accounts.update",
+        "meta": {"account_id": account_id, "fields": list(payload.keys())},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return res
+
+
+@api.delete("/admin/payment-accounts/{account_id}")
+async def admin_delete_payment_account(account_id: str, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    ok = await pay_accounts.delete_account(account_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Cont inexistent")
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user.user_id, "action": "admin.payment_accounts.delete",
+        "meta": {"account_id": account_id},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"deleted": True}
+
+
+# Forum routes appended below — include_router moved to end of file.
+
+
+# ====================== FORUM (registered above include_router) ======================
+# Note: forum routes are defined here and then re-included below.
+@api.get("/forum/industry-stats")
+async def forum_industry_stats():
+    return await forum_module.industry_stats()
+
+
+@api.get("/forum/threads")
+async def forum_list_threads(industry: Optional[str] = None, sort: str = "recent", limit: int = 50):
+    return await forum_module.list_threads(industry=industry, sort=sort, limit=min(limit, 100))
+
+
+@api.get("/forum/threads/{thread_id}")
+async def forum_get_thread(thread_id: str):
+    thread = await forum_module.get_thread(thread_id, increment_view=True)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Discuție inexistentă")
+    replies = await forum_module.list_replies(thread_id)
+    return {"thread": thread, "replies": replies}
+
+
+@api.post("/forum/threads")
+async def forum_create_thread(payload: forum_module.ThreadCreate, user: User = Depends(get_current_user)):
+    try:
+        thread_id = new_id("thr_")
+        doc = await forum_module.create_thread(user, payload, thread_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user.user_id, "action": "forum.thread.create",
+        "meta": {"thread_id": thread_id, "industry": payload.industry, "title": payload.title[:80]},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return doc
+
+
+@api.post("/forum/threads/{thread_id}/replies")
+async def forum_create_reply(thread_id: str, payload: forum_module.ReplyCreate, user: User = Depends(get_current_user)):
+    reply_id = new_id("rep_")
+    doc = await forum_module.create_reply(user, thread_id, payload, reply_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Discuție inexistentă")
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user.user_id, "action": "forum.reply.create",
+        "meta": {"thread_id": thread_id, "reply_id": reply_id},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return doc
+
+
+@api.post("/forum/threads/{thread_id}/like")
+async def forum_like_thread(thread_id: str, user: User = Depends(get_current_user)):
+    likes = await forum_module.like_thread(thread_id, user.user_id)
+    if likes is None:
+        raise HTTPException(status_code=404, detail="Discuție inexistentă")
+    return {"likes": likes}
+
+
+@api.delete("/forum/threads/{thread_id}")
+async def forum_delete_thread(thread_id: str, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    ok = await forum_module.delete_thread(thread_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Discuție inexistentă")
+    return {"deleted": True}
+
+
+# ====================== PROJECT LIFECYCLE ======================
+@api.get("/lifecycle/statuses")
+async def lifecycle_statuses():
+    """Public — return the catalog of project lifecycle statuses."""
+    return {"statuses": lifecycle.STATUSES}
+
+
+@api.get("/lifecycle/current")
+async def lifecycle_current(user: User = Depends(get_current_user)):
+    """Returns current detected status + smart audit score + next best action for the active project."""
+    proj = await _get_or_create_default_project(user.user_id)
+    counts = {
+        "templates": await db.templates.count_documents({"user_id": user.user_id}),
+        "documents": await db.documents.count_documents({"user_id": user.user_id}),
+        "stamps": await db.stamps.count_documents({"user_id": user.user_id}),
+        "certifications": await db.certifications_internal.count_documents({"user_id": user.user_id}),
+    }
+    plan_cfg = plans_module.get_plan(user.plan)
+    detected = lifecycle.detect_status(proj, counts)
+    score = lifecycle.smart_audit_score(proj, counts)
+    action = lifecycle.next_best_action(proj, counts, plan_cfg)
+    return {
+        "current_status": detected,
+        "status_meta": lifecycle.status_meta(detected),
+        "score": score,
+        "next_best_action": action,
+        "counts": counts,
+    }
+
+
+@api.post("/lifecycle/set-status")
+async def lifecycle_set_status(payload: dict, user: User = Depends(get_current_user)):
+    """Manual override — sets the status on the active project."""
+    new_status = (payload or {}).get("status", "").strip()
+    if new_status not in lifecycle.STATUS_BY_ID:
+        raise HTTPException(status_code=400, detail=f"Status invalid. Valid: {list(lifecycle.STATUS_BY_ID.keys())}")
+    proj = await _get_or_create_default_project(user.user_id)
+    await db.projects.update_one(
+        {"project_id": proj["project_id"], "user_id": user.user_id},
+        {"$set": {"status": new_status, "status_changed_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user.user_id, "action": "lifecycle.set_status",
+        "meta": {"project_id": proj["project_id"], "from": proj.get("status"), "to": new_status},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"status": new_status, "meta": lifecycle.status_meta(new_status)}
+
+
+# ====================== COMPANY PROFILE ======================
+@api.get("/company-profile")
+async def get_company_profile(user: User = Depends(get_current_user)):
+    return await company_module.get_profile(user.user_id)
+
+
+@api.put("/company-profile")
+async def upsert_company_profile(payload: company_module.CompanyProfile, user: User = Depends(get_current_user)):
+    doc = await company_module.upsert_profile(user.user_id, payload)
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user.user_id, "action": "company.profile.update",
+        "meta": {"fields": [k for k, v in payload.model_dump().items() if v is not None]},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return doc
+
+
+@api.get("/company-profile/placeholders")
+async def get_company_placeholders(user: User = Depends(get_current_user)):
+    """Returns the placeholder map derived from the company profile."""
+    profile = await company_module.get_profile(user.user_id)
+    return company_module.placeholders_from_profile(profile)
 
 
 app.include_router(api)
+
 
 # CORS: when credentials are required, browsers reject "*" origin. Use a regex
 # that matches the Emergent preview URL pattern + Render production URL. Override
@@ -1375,6 +1589,8 @@ async def on_startup():
     try:
         await system_templates.seed_system_templates(db)
         logger.info("System templates seeded.")
+        await pay_accounts.seed_default_account()
+        logger.info("Default payment account seeded.")
         # Upgrade developer accounts on every startup
         await db.users.update_many(
             {"email": {"$in": list(DEVELOPER_EMAILS)}},

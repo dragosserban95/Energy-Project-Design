@@ -5,7 +5,7 @@ import LicenseTimer from './LicenseTimer';
 import {
   LayoutDashboard, ClipboardList, Settings2, Calculator, FileText, FileCheck2,
   Stamp, ShieldCheck, Mail, BadgeCheck, GaugeCircle, CreditCard, Settings, LogOut,
-  Sparkles, Wrench, ListChecks, Flame, ChevronRight, FolderKanban, Github,
+  Sparkles, Wrench, ListChecks, Flame, ChevronRight, FolderKanban, Github, Banknote, MessageSquare, Building2,
 } from 'lucide-react';
 
 const SECTIONS = [
@@ -33,6 +33,7 @@ const SECTIONS = [
     title: 'Comunicare & Control',
     items: [
       { to: '/email', label: 'Email-uri', icon: Mail, tid: 'nav-email' },
+      { to: '/forum', label: 'Forum comunitate', icon: MessageSquare, tid: 'nav-forum' },
       { to: '/verifica', label: 'Verifică documentație', icon: GaugeCircle, tid: 'nav-verifica' },
       { to: '/ai', label: 'AI Assistant', icon: Sparkles, tid: 'nav-ai' },
       { to: '/audit', label: 'Audit interfață', icon: ListChecks, tid: 'nav-audit' },
@@ -41,6 +42,7 @@ const SECTIONS = [
   {
     title: 'Cont',
     items: [
+      { to: '/company', label: 'Profil societate', icon: Building2, tid: 'nav-company' },
       { to: '/pricing', label: 'Planuri & achiziții', icon: CreditCard, tid: 'nav-pricing' },
       { to: '/settings', label: 'Setări', icon: Settings, tid: 'nav-settings' },
     ],
@@ -105,6 +107,9 @@ export default function AppShell({ children, title, subtitle }) {
               </Link>
               <Link to="/developer/github" data-testid="nav-developer-github" className={`flex items-center gap-3 px-3 py-2 text-[13px] transition-colors rounded-sm ${location.pathname.startsWith('/developer/github') ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
                 <Github className="w-3.5 h-3.5 shrink-0" /><span className="flex-1">Push pe GitHub</span>
+              </Link>
+              <Link to="/admin/payment-accounts" data-testid="nav-payment-accounts" className={`flex items-center gap-3 px-3 py-2 text-[13px] transition-colors rounded-sm ${location.pathname.startsWith('/admin/payment-accounts') ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
+                <Banknote className="w-3.5 h-3.5 shrink-0" /><span className="flex-1">Conturi încasări</span>
               </Link>
             </div>
           )}

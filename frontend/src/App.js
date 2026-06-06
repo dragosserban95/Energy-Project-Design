@@ -11,6 +11,9 @@ import Projects from './pages/Projects';
 import Developer from './pages/Developer';
 import DeveloperChat from './pages/DeveloperChat';
 import DeveloperGithub from './pages/DeveloperGithub';
+import PaymentAccounts from './pages/PaymentAccounts';
+import Forum from './pages/Forum';
+import CompanyProfile from './pages/CompanyProfile';
 import ProjectData from './pages/ProjectData';
 import TechnicalData from './pages/TechnicalData';
 import SmartCalc from './pages/SmartCalc';
@@ -57,6 +60,10 @@ function AppRouter() {
       <Route path="/developer" element={<ProtectedRoute><Developer /></ProtectedRoute>} />
       <Route path="/developer/chat" element={<ProtectedRoute><DeveloperChat /></ProtectedRoute>} />
       <Route path="/developer/github" element={<ProtectedRoute><DeveloperGithub /></ProtectedRoute>} />
+      <Route path="/admin/payment-accounts" element={<ProtectedRoute><PaymentAccounts /></ProtectedRoute>} />
+      <Route path="/forum" element={<ProtectedRoute><Forum /></ProtectedRoute>} />
+      <Route path="/forum/:threadId" element={<ProtectedRoute><Forum /></ProtectedRoute>} />
+      <Route path="/company" element={<ProtectedRoute><CompanyProfile /></ProtectedRoute>} />
       <Route path="/proiect" element={<ProtectedRoute><ProjectData /></ProtectedRoute>} />
       <Route path="/tehnice" element={<ProtectedRoute><TechnicalData /></ProtectedRoute>} />
       <Route path="/calcul" element={<ProtectedRoute><SmartCalc /></ProtectedRoute>} />
