@@ -43,6 +43,7 @@ import industries as industries_module
 import system_templates
 import pdf_export
 import github_push
+import handoff as handoff_module
 import hashlib
 
 from emergentintegrations.payments.stripe.checkout import (
@@ -1176,6 +1177,51 @@ async def dev_github_push(payload: github_push.GitHubPushRequest, user: User = D
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
     return result
+
+
+@api.get("/dev/handoff/export")
+async def dev_handoff_export(user: User = Depends(get_current_user)):
+    """Generate a markdown 'save state' file for transferring this project to another Emergent user."""
+    _ensure_developer(user)
+    try:
+        markdown = await handoff_module.build_handoff_markdown()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Handoff generation failed: {e}")
+    return {
+        "filename": "HANDOFF_FOR_NEXT_EMERGENT.md",
+        "markdown": markdown,
+        "size_chars": len(markdown),
+    }
+
+
+@api.post("/dev/handoff/push")
+async def dev_handoff_push(user: User = Depends(get_current_user)):
+    """Generate the handoff doc and commit it to the repo root so any future clone has it."""
+    _ensure_developer(user)
+    try:
+        markdown = await handoff_module.build_handoff_markdown()
+        req = github_push.GitHubPushRequest(
+            prompt="Auto-generated handoff snapshot — paste this into a new Emergent chat to continue.",
+            commit_message="docs: refresh HANDOFF_FOR_NEXT_EMERGENT.md",
+            files=[github_push.GitHubPushFile(path="HANDOFF_FOR_NEXT_EMERGENT.md", content=markdown)],
+            update_secret=os.environ.get("EPD_UPDATE_SECRET", "").strip() or None,
+        )
+        result = await github_push.push_files(req)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Handoff push failed: {e}")
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"),
+        "user_id": user.user_id,
+        "action": "dev.handoff.push",
+        "meta": {"chars": len(markdown), "commit_sha": result["results"][0]["commit_sha"][:7]},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {
+        "ok": True,
+        "size_chars": len(markdown),
+        "file_url": result["results"][0]["file_url"],
+        "commit_url": result["results"][0]["commit_url"],
+    }
 
 
 # ====================== ACTIVITY LOG & VERSION STATUS ======================
