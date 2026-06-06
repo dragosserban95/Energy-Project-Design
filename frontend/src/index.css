@@ -123,3 +123,29 @@ code, .mono {
 .label {
   @apply text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500;
 }
+
+/* Forum markdown styles */
+.forum-md p { margin: 0.5em 0; }
+.forum-md p:first-child { margin-top: 0; }
+.forum-md p:last-child { margin-bottom: 0; }
+.forum-md strong { font-weight: 700; }
+.forum-md em { font-style: italic; }
+.forum-md a { color: #FFB300; text-decoration: underline; }
+.forum-md a:hover { color: #000; }
+.forum-md code { background: #F3F4F6; padding: 1px 5px; font-family: 'JetBrains Mono', monospace; font-size: 0.9em; border-radius: 2px; }
+.forum-md pre { background: #1F2937; color: #F9FAFB; padding: 12px; overflow-x: auto; margin: 0.8em 0; font-size: 0.85em; }
+.forum-md pre code { background: transparent; color: inherit; padding: 0; }
+.forum-md ul, .forum-md ol { padding-left: 1.5em; margin: 0.5em 0; }
+.forum-md ul { list-style: disc; }
+.forum-md ol { list-style: decimal; }
+.forum-md li { margin: 0.2em 0; }
+.forum-md blockquote { border-left: 3px solid #FFB300; padding-left: 1em; color: #6B7280; margin: 0.8em 0; font-style: italic; }
+.forum-md h1, .forum-md h2, .forum-md h3, .forum-md h4 { font-weight: 700; margin: 0.8em 0 0.4em; }
+.forum-md h1 { font-size: 1.4em; }
+.forum-md h2 { font-size: 1.25em; }
+.forum-md h3 { font-size: 1.1em; }
+.forum-md h4 { font-size: 1em; }
+.forum-md hr { border: 0; border-top: 1px solid #E5E7EB; margin: 1em 0; }
+.forum-md table { border-collapse: collapse; margin: 0.8em 0; }
+.forum-md th, .forum-md td { border: 1px solid #D1D5DB; padding: 4px 8px; text-align: left; }
+.forum-md th { background: #F3F4F6; font-weight: 600; }
