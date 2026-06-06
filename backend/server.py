@@ -48,6 +48,7 @@ import verification as verification_module
 import payment_accounts as pay_accounts
 import forum as forum_module
 import project_lifecycle as lifecycle
+import company_profile as company_module
 import hashlib
 
 from emergentintegrations.payments.stripe.checkout import (
@@ -1530,6 +1531,30 @@ async def lifecycle_set_status(payload: dict, user: User = Depends(get_current_u
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
     return {"status": new_status, "meta": lifecycle.status_meta(new_status)}
+
+
+# ====================== COMPANY PROFILE ======================
+@api.get("/company-profile")
+async def get_company_profile(user: User = Depends(get_current_user)):
+    return await company_module.get_profile(user.user_id)
+
+
+@api.put("/company-profile")
+async def upsert_company_profile(payload: company_module.CompanyProfile, user: User = Depends(get_current_user)):
+    doc = await company_module.upsert_profile(user.user_id, payload)
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user.user_id, "action": "company.profile.update",
+        "meta": {"fields": [k for k, v in payload.model_dump().items() if v is not None]},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return doc
+
+
+@api.get("/company-profile/placeholders")
+async def get_company_placeholders(user: User = Depends(get_current_user)):
+    """Returns the placeholder map derived from the company profile."""
+    profile = await company_module.get_profile(user.user_id)
+    return company_module.placeholders_from_profile(profile)
 
 
 app.include_router(api)
