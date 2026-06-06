@@ -14,6 +14,7 @@ import DeveloperGithub from './pages/DeveloperGithub';
 import PaymentAccounts from './pages/PaymentAccounts';
 import Forum from './pages/Forum';
 import CompanyProfile from './pages/CompanyProfile';
+import AuditLogs from './pages/AuditLogs';
 import ProjectData from './pages/ProjectData';
 import TechnicalData from './pages/TechnicalData';
 import SmartCalc from './pages/SmartCalc';
@@ -64,6 +65,7 @@ function AppRouter() {
       <Route path="/forum" element={<ProtectedRoute><Forum /></ProtectedRoute>} />
       <Route path="/forum/:threadId" element={<ProtectedRoute><Forum /></ProtectedRoute>} />
       <Route path="/company" element={<ProtectedRoute><CompanyProfile /></ProtectedRoute>} />
+      <Route path="/logs" element={<ProtectedRoute><AuditLogs /></ProtectedRoute>} />
       <Route path="/proiect" element={<ProtectedRoute><ProjectData /></ProtectedRoute>} />
       <Route path="/tehnice" element={<ProtectedRoute><TechnicalData /></ProtectedRoute>} />
       <Route path="/calcul" element={<ProtectedRoute><SmartCalc /></ProtectedRoute>} />
