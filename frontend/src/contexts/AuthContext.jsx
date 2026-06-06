@@ -3,6 +3,17 @@ import api from '../lib/api';
 
 const AuthContext = createContext(null);
 
+/**
+ * Auth strategy (V4.8+): httpOnly Secure SameSite=None cookie set by backend on
+ * login/register/google session. Token is NEVER stored in localStorage anymore
+ * (XSS-safe). Cookie is automatically sent on every request via withCredentials.
+ *
+ * One-time migration: drop any pre-existing localStorage token on first load.
+ */
+function purgeLegacyToken() {
+  try { localStorage.removeItem('auth_token'); } catch (_) { /* noop */ }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -12,7 +23,6 @@ export function AuthProvider({ children }) {
       const { data } = await api.get('/auth/me');
       setUser(data);
     } catch (err) {
-      // Not authenticated — fall through to null user. Log non-401 errors.
       if (err?.response?.status && err.response.status !== 401) {
         console.error('Auth check failed:', err);
       }
@@ -23,7 +33,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    // If returning from OAuth callback, skip /me check, AuthCallback handles it
+    purgeLegacyToken();
     if (window.location.hash?.includes('session_id=')) {
       setLoading(false);
       return;
@@ -33,20 +43,19 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
-    localStorage.setItem('auth_token', data.token);
     setUser(data.user);
     return data.user;
   };
 
   const register = async (payload) => {
     const { data } = await api.post('/auth/register', payload);
-    localStorage.setItem('auth_token', data.token);
     setUser(data.user);
     return data.user;
   };
+
   const logout = async () => {
     try { await api.post('/auth/logout'); } catch (err) { console.warn('Logout API failed (proceeding anyway):', err); }
-    localStorage.removeItem('auth_token');
+    purgeLegacyToken();
     setUser(null);
   };
 
