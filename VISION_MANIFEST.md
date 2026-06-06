@@ -532,3 +532,71 @@ Dacă diferență > threshold → alertă suprascriere
 ---
 
 **END OF VISION MANIFEST v1.4.0**
+
+
+---
+
+## 🔄 APPEND v1.5.0 — Rebuild on new Emergent account (2026-06-06)
+
+**Date:** 2026-06-06 12:55 UTC
+**Triggered by:** User prompt "Importa versiunea finalizata… continua ultima comanda… implementa structura de baza… cele 12 industrii… 4 liste planificare…"
+
+### Context
+Sesiune de rebuild pe un cont Emergent NOU. Ultima comandă din contul vechi: commit `53b748e` (V4.9 — audit logs + doc versioning + company logo + auth fix).
+
+### Acțiuni noi (NON-DESTRUCTIVE — append-only):
+
+1. **Sistem tracking comenzi + pași** creat în `/app/memory/`:
+   - `COMMAND_LOG.md` — audit log append-only al fiecărei comenzi/acțiuni
+   - `STEP_TRACKER.json` — machine-readable progress tracker (7 phases, ~25 steps)
+   - `RESUME_PROMPT.md` — prompt unic pentru cont Emergent nou (pas zero)
+
+2. **4 liste de planificare** create în `/app/memory/`:
+   - `LIST_1_TODO.md` — execuție strictă (P0 → P3)
+   - `LIST_2_SUGGESTED.md` — îmbunătățiri pe arhitectura existentă
+   - `LIST_3_FUTURISTIC.md` — out-of-the-box (opt-in only)
+   - `LIST_4_BIG_UPDATE_WEB_RESEARCH.md` — deep web research pentru documentația celor 12 industrii (opt-in only)
+
+3. **Structură de bază UI pentru cele 12 industrii** (+ 1 extensie):
+   - `/industrii` — Hub central cu grid 13 industry cards + stats banner
+   - `/industrii/:industryId` — Per-industry skeleton page cu subdomains list + resources + roadmap hint
+
+4. **Hub Feat-uri (viziune extinsă)** — schelet pentru 10 module noi:
+   - `/feat-uri` — Hub central cu 10 feature cards (status: planned|partial|skeleton|active)
+   - `/feat-uri/:featureId` — Per-feature detail (De ce / Cum / Necesare / Pași urmatori)
+   - Module: SEAP Alerts, AI Agents (4 specializați), Subscribers/Contracts, Jobs, Reports, Legal Automation, Partners (brand+inspirational), Volunteering, Developer Plan, Community
+
+5. **Pagina /developer/progres** (developer-only) — tracker vizual:
+   - 7 faze build cu progress bars
+   - Display "Ultima comandă cont vechi" (commit hash + mesaj)
+   - Tabs pentru cele 4 liste (markdown rendered)
+
+6. **Backend endpoints noi** (în `server.py`):
+   - `GET /api/feat/status` — public, returnează status-ul celor 10 feat-uri
+   - `GET /api/ai/agents` — public, registry-ul celor 4 AI agents
+   - `GET /api/dev/progress` — developer-only, returnează `STEP_TRACKER.json`
+   - `GET /api/dev/list/{id}` — developer-only, returnează conținutul listelor 1-4
+   - `POST /api/dev/list/{id}/append` — developer-only, append-only la liste
+
+### Reguli adăugate:
+
+- **Listele 3 și 4** (Futuristic + Big Update Web Research) sunt **opt-in only** — AI Agent-ul nu execută din ele decât la cerere explicită.
+- **VISION_MANIFEST.md, COMMAND_LOG.md, listele 1-4** sunt **append-only** (nu suprascrie niciodată).
+- **STEP_TRACKER.json** este machine-readable; status fiecărui pas trece prin: `pending → in_progress → completed`.
+- **Pe cont Emergent nou**, prompt-ul de pas zero este în `/app/memory/RESUME_PROMPT.md`.
+
+### Status la finalul append-ului:
+
+| Domeniu | Status |
+|---------|--------|
+| Backend `/api/*` | ✅ RUNNING (versiune 4.9, 200 OK) |
+| Frontend rute noi | ✅ RUNNING (compilat cu 1 warning eslint pe AuditLogs.jsx) |
+| 13 industrii catalogate | ✅ Toate active (56/56 subdomenii) |
+| Sistem tracking | ✅ COMPLET |
+| 4 liste planificare | ✅ COMPLETE (backup în repo necesar) |
+| Testing | ✅ Backend 100% (14/14), Frontend 85% (1 issue flaky-timing pe /industrii — confirmat că merge prin screenshot fresh) |
+
+---
+
+**END OF APPEND v1.5.0 — 2026-06-06 12:55 UTC**
+

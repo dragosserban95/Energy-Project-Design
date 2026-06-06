@@ -1,43 +1,48 @@
-# Test Credentials
+# Test Credentials — EPD
 
-## Developer account (lifetime, auto-detected)
-- email: dragosserban95@gmail.com
-- password: Test12345
-- Auto-marked is_developer=true, plan=developer on first register OR login
+## Developer account (auto-detected lifetime)
+- email: `dragosserban95@gmail.com`
+- password: `Test12345`
+- Auto-marked `is_developer=true`, `plan=developer` on register OR login.
 
 ## Backend env
-- STRIPE_API_KEY=sk_test_emergent (in /app/backend/.env)
-  - **Production: replace with `sk_live_...` — NO code changes needed**
-- MONGO_URL=mongodb://localhost:27017
-- Gmail: per-user via /api/users/me PATCH
+- `STRIPE_API_KEY=sk_test_emergent` — test mode
+- `MONGO_URL=mongodb://localhost:27017`
+- `EMERGENT_LLM_KEY=sk-emergent-cD272AaF4F168B72f5` — universal LLM key
+- `JWT_SECRET=epd-secret-2026-...`
 
 ## App
-- URL: https://template-stamp-hub.preview.emergentagent.com
-- App: Energy Project Design Services v4.8
-- Company: ENERGY PROJECT DESIGN SRL, CUI 43151074, J40/12982/2020
+- Preview URL: https://energy-sectors-build.preview.emergentagent.com
+- Canonical (deploy target): design-energy.emergent.host
+- Backend: FastAPI v4.9 — `/api/*` prefix
+- Frontend: React 19 + Tailwind + Shadcn/UI
 
-## Auth flow (V4.8+)
-- **httpOnly Secure SameSite=None cookies** (XSS-safe — token NEVER in localStorage)
-- Login/Register set the `session_token` cookie automatically
-- Authorization Bearer header is also supported (backward-compat for curl/testing)
-- Logout endpoint clears the cookie and DB session
+## Auth flow
+- httpOnly Secure SameSite=None cookies (XSS-safe — token NEVER in localStorage).
+- Login/Register set `session_token` cookie automatically.
+- Authorization Bearer header is also supported (backward-compat for curl/testing).
+- Logout endpoint clears the cookie and DB session.
 
-## Testing examples
+## cURL testing
 ```bash
-# Login + use cookie for all subsequent calls
-curl -c /tmp/c.txt -X POST $BACKEND_URL/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"dragosserban95@gmail.com","password":"Test12345"}'
-curl -b /tmp/c.txt $BACKEND_URL/api/auth/me   # cookie-only auth
+BACKEND_URL=https://energy-sectors-build.preview.emergentagent.com
 
-# OR use Bearer token (for scripted testing)
-TOKEN=$(curl -s -X POST $BACKEND_URL/api/auth/login -H "Content-Type: application/json" \
-  -d '{"email":"dragosserban95@gmail.com","password":"Test12345"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
-curl -H "Authorization: Bearer $TOKEN" $BACKEND_URL/api/auth/me
+# Register (Romanian message error on missing gdpr_consent)
+curl -X POST $BACKEND_URL/api/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"dragosserban95@gmail.com","password":"Test12345","name":"Dragos Serban","gdpr_consent":true}'
+
+# Login (cookie + token)
+curl -c /tmp/c.txt -X POST $BACKEND_URL/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"dragosserban95@gmail.com","password":"Test12345"}'
+
+# Get me (using cookie)
+curl -b /tmp/c.txt $BACKEND_URL/api/auth/me
 ```
 
-## Note for testing
-- Register endpoint requires gdpr_consent=true (Romanian message returned otherwise)
-- Active project: each user has one active at a time; switching via POST /api/projects/{id}/activate
-- System templates seeded at backend startup (4-6 templates for gas engineering + VGD/RTE)
-- All 8 industries are now active (34 subdomains)
+## Notes
+- Register endpoint requires `gdpr_consent=true` (Romanian message returned otherwise).
+- Active project: each user has one active at a time; switching via POST /api/projects/{id}/activate.
+- System templates seeded at backend startup (6 templates for gas engineering + VGD/RTE).
+- All 13 industries are now active (catalog).

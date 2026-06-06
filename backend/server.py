@@ -1342,6 +1342,140 @@ async def get_vision(user: User = Depends(get_current_user)):
         return {"vision": "", "exists": False, "error": str(e)}
 
 
+# ====================== PROGRESS TRACKER & LISTS (developer-only) ======================
+import json as _json_mod
+
+_LIST_FILES_MAP = {
+    "todo": "/app/memory/LIST_1_TODO.md",
+    "suggested": "/app/memory/LIST_2_SUGGESTED.md",
+    "futuristic": "/app/memory/LIST_3_FUTURISTIC.md",
+    "big_update": "/app/memory/LIST_4_BIG_UPDATE_WEB_RESEARCH.md",
+}
+
+
+@api.get("/dev/progress")
+async def dev_progress(user: User = Depends(get_current_user)):
+    """Return the STEP_TRACKER.json content so developer page can render phases + steps."""
+    _ensure_developer(user)
+    tracker_path = Path("/app/memory/STEP_TRACKER.json")
+    if not tracker_path.exists():
+        return {"meta": {}, "phases": [], "checkpoints": [], "last_emergent_account_command": None}
+    try:
+        return _json_mod.loads(tracker_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Tracker read error: {e}")
+
+
+@api.get("/dev/list/{list_id}")
+async def dev_list(list_id: str, user: User = Depends(get_current_user)):
+    """Return the markdown content of one of the 4 planning lists."""
+    _ensure_developer(user)
+    file_path = _LIST_FILES_MAP.get(list_id)
+    if not file_path:
+        raise HTTPException(status_code=404, detail="List inexistentă (folosește: todo|suggested|futuristic|big_update)")
+    p = Path(file_path)
+    if not p.exists():
+        return {"id": list_id, "content": "", "exists": False}
+    try:
+        return {"id": list_id, "content": p.read_text(encoding="utf-8"), "exists": True, "size": p.stat().st_size}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"List read error: {e}")
+
+
+@api.post("/dev/list/{list_id}/append")
+async def dev_list_append(list_id: str, payload: dict, user: User = Depends(get_current_user)):
+    """Append a markdown block at the end of a list (append-only, never overwrite)."""
+    _ensure_developer(user)
+    file_path = _LIST_FILES_MAP.get(list_id)
+    if not file_path:
+        raise HTTPException(status_code=404, detail="List inexistentă")
+    block = (payload or {}).get("block", "").strip()
+    if not block:
+        raise HTTPException(status_code=400, detail="Lipsește 'block' (text markdown).")
+    p = Path(file_path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    appended_block = f"\n\n---\n### Append [{timestamp}]\n{block}\n"
+    with p.open("a", encoding="utf-8") as fh:
+        fh.write(appended_block)
+    return {"ok": True, "id": list_id, "appended_chars": len(appended_block), "timestamp": timestamp}
+
+
+# ====================== FEAT-URI STATUS (public-ish, sumar) ======================
+FEAT_HUB_STATUS = {
+    "seap": "planned",
+    "ai-agents": "skeleton",
+    "subscribers": "planned",
+    "jobs": "planned",
+    "reports": "planned",
+    "legal-automation": "planned",
+    "partners": "planned",
+    "volunteering": "planned",
+    "developer-plan": "partial",
+    "community": "partial",
+}
+
+
+@api.get("/feat/status")
+async def feat_status():
+    """Returns the status of the vision sub-modules (active/partial/skeleton/planned)."""
+    return {
+        "features": [
+            {"id": fid, "status": st} for fid, st in FEAT_HUB_STATUS.items()
+        ],
+        "summary": {
+            "total": len(FEAT_HUB_STATUS),
+            "active": sum(1 for s in FEAT_HUB_STATUS.values() if s == "active"),
+            "partial": sum(1 for s in FEAT_HUB_STATUS.values() if s == "partial"),
+            "skeleton": sum(1 for s in FEAT_HUB_STATUS.values() if s == "skeleton"),
+            "planned": sum(1 for s in FEAT_HUB_STATUS.values() if s == "planned"),
+        },
+    }
+
+
+# ====================== AI AGENTS REGISTRY (skeleton — 4 specialized agents) ======================
+AI_AGENTS_REGISTRY = [
+    {
+        "id": "producer",
+        "name": "Producer AI Agent",
+        "tagline": "Analizează documentația veche și sugerează actualizări conform normelor noi.",
+        "model_recommendation": "gpt-4o",
+        "context_scope": "documente firmei + norme ANRE/ANRP/ISCIR/AFER curente",
+        "status": "planned",
+    },
+    {
+        "id": "user",
+        "name": "User AI Agent",
+        "tagline": "Ghidează utilizatorul pe formular cu validare în timp real și sugestii contextuale.",
+        "model_recommendation": "gpt-4o-mini",
+        "context_scope": "proiectul activ + tipul de utilizator (proiectant/executant/RTE/VGD)",
+        "status": "skeleton",
+    },
+    {
+        "id": "client",
+        "name": "Client AI Agent",
+        "tagline": "Chat clienți finali cu recomandări tarife/servicii pe baza istoricului.",
+        "model_recommendation": "gpt-4o-mini",
+        "context_scope": "istoric servicii client + cataloagele firmei + reduceri active",
+        "status": "planned",
+    },
+    {
+        "id": "developer",
+        "name": "Developer AI Agent",
+        "tagline": "Modificări cod custom + dezvoltare funcții (Plan Mode + Apply Mode în viitor).",
+        "model_recommendation": "gpt-4o + tools",
+        "context_scope": "repo /app/* + safety rules + diff preview",
+        "status": "partial",
+    },
+]
+
+
+@api.get("/ai/agents")
+async def list_ai_agents():
+    """Public read-only registry of the 4 specialized AI agents from the vision."""
+    return {"agents": AI_AGENTS_REGISTRY, "count": len(AI_AGENTS_REGISTRY)}
+
+
 # ====================== ROOT ======================
 @api.get("/")
 async def root():

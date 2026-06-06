@@ -1,20 +1,65 @@
 # 🛟 HANDOFF — Energy Project Design Services
-**Snapshot generated:** 2026-06-06 11:24 UTC
+**Snapshot generated:** 2026-06-06 11:24 UTC (original)
+**Last updated:** 2026-06-06 12:55 UTC (V5.0 rebuild on new Emergent account)
 **Source repo:** https://github.com/dragosserban95/Energy-Project-Design (branch `main`)
-**Preview (current Emergent session):** https://template-stamp-hub.preview.emergentagent.com
-**Production target:** https://energy-project-design-services.onrender.com
+**Preview (current Emergent session):** https://energy-sectors-build.preview.emergentagent.com
+**Canonical (production target):** design-energy.emergent.host
+**Old production target:** https://energy-project-design-services.onrender.com
 
 ---
 
-## 📌 Pentru noul utilizator Emergent — cum continui de aici
+## 🚀 Pentru CONT EMERGENT NOU — prompt unic (UPDATED 2026-06-06 v5.0)
 
-Pasul 1. Creează un task nou în Emergent (cont gratuit OK).
-Pasul 2. În prompt, lipește acest mesaj:
+> **Lipește EXACT acest text într-un task Emergent nou și apasă Enter. Atât.**
 
-> Importă codul din `https://github.com/dragosserban95/Energy-Project-Design` (branch `main`). Apoi citește `/app/memory/PRD.md` și `HANDOFF_FOR_NEXT_EMERGENT.md` din rădăcina repo-ului ca să înțelegi unde am rămas. Limba aplicației: română. Contul developer: `dragosserban95@gmail.com` / parola `Test12345` (auto-detectat ca developer). Continuă de la secțiunea "Next actions" din handoff.
+```
+Import comenzi, fisiere, conversatii emergent stocate in repository
+dragosserban95/Energy-Project-Design + track page progres building +
+continue from last step taken to the end of the script/website final vision.
 
-Pasul 3. Configurează secretele în `backend/.env` (lista mai jos). Sunt deja documentate în `backend/.env.example`.
-Pasul 4. Repornește serviciile: `sudo supervisorctl restart backend frontend`.
+Citește în această ordine:
+1. /app/VISION_MANIFEST.md (viziune locked — APPEND-ONLY)
+2. /app/memory/PRD.md (cerințe produs)
+3. /app/memory/COMMAND_LOG.md (istoricul comenzilor)
+4. /app/memory/STEP_TRACKER.json (unde am rămas)
+5. /app/memory/LIST_1_TODO.md (TO-DO curent — execută în ordine)
+6. /app/memory/LIST_2_SUGGESTED.md (îmbunătățiri sugerate)
+7. /app/HANDOFF_FOR_NEXT_EMERGENT.md (acest fișier)
+
+Apoi:
+- Continuă de la primul pas „pending" din STEP_TRACKER.json.
+- După FIECARE pas major: append în COMMAND_LOG.md + update STEP_TRACKER.json + arată listele 1 și 2 pentru aprobare.
+- Commit în repo (via /api/dev/github/push) după fiecare fază majoră.
+- Limba: română. Cont developer: dragosserban95@gmail.com / Test12345 (auto-detectat).
+- Lucrează STRICT pe listele 1 și 2. Listele 3 (Out-of-the-box) și 4 (Big Update web research) doar la cerere explicită.
+```
+
+### Pași tehnici (după ce AI-ul a importat repo-ul):
+
+1. Configurează `backend/.env` (deja are valori default + Emergent LLM key — vezi `/app/memory/test_credentials.md`).
+2. `pip install -r backend/requirements.txt` + `yarn install --cwd frontend`.
+3. `sudo supervisorctl restart backend frontend`.
+4. Verify: `curl $BACKEND/api/` → `{status:'ok'}` și `curl $BACKEND/api/industries` → 13 industries.
+
+---
+
+## 📊 STATUS LA HANDOFF v5.0 (2026-06-06 12:55 UTC)
+
+| Componentă | Status |
+|------------|--------|
+| Backend FastAPI | ✅ RUNNING (versiune 4.9, port 8001, 13 industrii catalogate) |
+| Frontend React | ✅ RUNNING (port 3000, 32+ pagini, compilat curat) |
+| MongoDB | ✅ RUNNING (port 27017, db: `test_database` sau `energy_project_design`) |
+| Auth flow | ✅ httpOnly cookies SameSite=None + JWT Bearer fallback |
+| 13 industrii UI | ✅ /industrii hub + /industrii/:id skeleton |
+| 10 feat-uri viziune | ✅ /feat-uri hub + /feat-uri/:id skeleton (status: planned/partial/skeleton) |
+| Developer page | ✅ /developer/progres (7 faze build + 4 list tabs) |
+| Sistem tracking | ✅ COMMAND_LOG.md, STEP_TRACKER.json, RESUME_PROMPT.md |
+| Cele 4 liste | ✅ LIST_1..4 în /app/memory/ |
+| Testing | ✅ Backend 100% (14/14), Frontend 85% (flaky timing pe /industrii, confirmat funcțional via screenshot) |
+| GitHub auto-push | ⚠️ Necesită GITHUB_TOKEN în .env (sau push manual din UI /api/dev/github/push) |
+| Stripe live | ⏳ Necesită `sk_live_...` (currently `sk_test_emergent`) |
+| QES real providers | ⏳ Scaffold only (certSIGN/DigiSign/Trans Sped subclasses to be implemented) |
 
 ---
 
@@ -40,15 +85,22 @@ B2B SaaS for Romanian engineering documentation, starting with **gas naturale** 
 - Per-user **active project** drives all operational pages
 - System-seeded DOCX templates available for all users (clone to library)
 
-## Industries (8 catalogued)
-1. ✅ **Gas naturale** (active) — 5 subdomenii active: Branșamente, Instalații utilizare, Extinderi conductă, Studii fezabilitate, Înlocuiri/modernizări
-2. ⏳ Electrică (coming_soon)
-3. ⏳ Apă & canalizare (coming_soon)
-4. ⏳ Construcții civile (coming_soon)
-5. ⏳ Telecom (coming_soon)
-6. ⏳ Fotovoltaice (coming_soon)
-7. ⏳ Construcții (coming_soon)
-8. ⏳ Infrastructură feroviară (coming_soon)
+## Industries (13 catalogued — toate active după v5.0 rebuild)
+1. ✅ **Gas naturale** — 5 subdomenii active
+2. ✅ **Electrică** — 5 subdomenii active
+3. ✅ **Telecomunicații** — 3 subdomenii active
+4. ✅ **Feroviar** — 4 subdomenii active
+5. ✅ **Construcții civile (DTAC)** — 3 subdomenii active
+6. ✅ **Fotovoltaice** — 4 subdomenii active
+7. ✅ **Apă & canalizare** — 5 subdomenii active
+8. ✅ **Salubritate** — 4 subdomenii active
+9. ✅ **HVAC** — 5 subdomenii active
+10. ✅ **Mediu & avize** — 4 subdomenii active
+11. ✅ **Drumuri & poduri** — 5 subdomenii active
+12. ✅ **Iluminat public** — 4 subdomenii active
+13. ✅ **Construcții imobile (extensie)** — 3 subdomenii active
+
+**TOTAL: 56/56 subdomenii active. Planificate adițional: ~102 (158 grand total — vezi `/app/docs/INDUSTRIES_ROADMAP.md`)**
 
 ## Imported from upstream repo (dragosserban95/Energy-Project-Design)
 - VGD/RTE detail fields: atestat_vgd, data_verificare_vgd, status_vgd, observatii_vgd, autorizatie_rte, data_verificare_rte, status_rte, observatii_rte
