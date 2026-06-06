@@ -18,7 +18,9 @@ from db import db
 INDUSTRY_CODES = {
     "gas_engineering", "electrical_engineering", "water_sewage",
     "civil_engineering", "telecom", "photovoltaic",
-    "construction", "railway_infra", "general",  # 'general' for cross-industry discussion
+    "construction", "railway_infra",
+    "sanitation", "hvac", "environment", "roads_bridges", "public_lighting",
+    "general",  # 'general' for cross-industry discussion
 }
 
 
