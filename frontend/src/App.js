@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import Developer from './pages/Developer';
 import DeveloperChat from './pages/DeveloperChat';
+import DeveloperGithub from './pages/DeveloperGithub';
 import ProjectData from './pages/ProjectData';
 import TechnicalData from './pages/TechnicalData';
 import SmartCalc from './pages/SmartCalc';
@@ -55,6 +56,7 @@ function AppRouter() {
       <Route path="/proiecte" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
       <Route path="/developer" element={<ProtectedRoute><Developer /></ProtectedRoute>} />
       <Route path="/developer/chat" element={<ProtectedRoute><DeveloperChat /></ProtectedRoute>} />
+      <Route path="/developer/github" element={<ProtectedRoute><DeveloperGithub /></ProtectedRoute>} />
       <Route path="/proiect" element={<ProtectedRoute><ProjectData /></ProtectedRoute>} />
       <Route path="/tehnice" element={<ProtectedRoute><TechnicalData /></ProtectedRoute>} />
       <Route path="/calcul" element={<ProtectedRoute><SmartCalc /></ProtectedRoute>} />

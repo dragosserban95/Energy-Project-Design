@@ -61,11 +61,20 @@ B2B SaaS for Romanian engineering documentation, starting with **gas naturale** 
 - P1: Encrypt `qes_credentials` at rest (Fernet/KMS)
 - P1: Implement real certSIGN/DigiSign/Trans Sped subclasses (needs API contract)
 - P1: Switch to Stripe live key (`sk_live_...`)
-- P2: PDF export alongside DOCX
+- P1: Refactor auth → httpOnly cookies (`AuthContext.jsx`, `auth.py`, `server.py`, `api.js`)
+- P2: PDF export alongside DOCX ✅ DONE (reportlab)
 - P2: Team workspaces with role inheritance
 - P2: Activate electrical / water-sewage / civil / telecom industries
 - P2: Public verification page `/verify/{doc_id}`
 - P3: Encrypt action_logs and gmail_app_password at rest
+
+## V4.8 — Cross-account Emergent transfer (2026-02-06)
+- ✅ `render.yaml` blueprint pentru auto-deploy Render (backend + frontend static)
+- ✅ `backend/github_push.py` + `POST /api/dev/github/push` — developer push direct în repo
+- ✅ Pagina `/developer/github` cu UI completă: status repo, lista commits, formular push fișiere
+- ✅ `backend/handoff.py` + `GET /api/dev/handoff/export` + `POST /api/dev/handoff/push`
+- ✅ Buton "Salvează în GitHub" pe pagina developer → commit-uie `HANDOFF_FOR_NEXT_EMERGENT.md` în rădăcina repo-ului (15.6KB snapshot)
+- ✅ 120 fișiere push-uite în [`dragosserban95/Energy-Project-Design`](https://github.com/dragosserban95/Energy-Project-Design) (backend 20 + frontend 95 + deploy 5)
 
 ## Handoff (for any AI / human developer)
 - Code root: `/app/` (backend `/app/backend`, frontend `/app/frontend`)
