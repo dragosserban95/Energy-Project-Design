@@ -1,5 +1,5 @@
 # 🛟 HANDOFF — Energy Project Design Services
-**Snapshot generated:** 2026-06-06 01:06 UTC
+**Snapshot generated:** 2026-06-06 11:24 UTC
 **Source repo:** https://github.com/dragosserban95/Energy-Project-Design (branch `main`)
 **Preview (current Emergent session):** https://template-stamp-hub.preview.emergentagent.com
 **Production target:** https://energy-project-design-services.onrender.com
@@ -89,6 +89,18 @@ B2B SaaS for Romanian engineering documentation, starting with **gas naturale** 
 - P2: Activate electrical / water-sewage / civil / telecom industries
 - P2: Public verification page `/verify/{doc_id}`
 - P3: Encrypt action_logs and gmail_app_password at rest
+
+## V4.9 — Forum + Lifecycle + Company + Payment Accounts (2026-02-06)
+- ✅ **Payment Accounts** module (Revolut IBAN pre-seed TEST) + admin CRUD /admin/payment-accounts + public /payment-accounts/active pentru SEPA bank transfer
+- ✅ **Forum** comunitate cu 9 industrii (8 + general), threads + replies + likes + views, auto-strip secrete, compose modal cu tags, developer poate șterge orice
+- ✅ **Project Lifecycle** — 12 statusuri (Schiță → Arhivat) cu badges colorate, auto-detect din state + manual override
+- ✅ **Smart Audit Score** ponderat pe 7 secțiuni (project 20%, technical 25%, calc 15%, etc.)
+- ✅ **Next Best Action Engine** — un singur CTA per ecran, prioritizat după severity (high/medium/low)
+- ✅ **LifecycleWidget** vizibil pe Dashboard cu Status + Score progress bar + NBA + breakdown
+- ✅ **Company Profile** — 15 câmpuri firmă în 5 secțiuni (identitate, sediu, contact, bancă, repr.) cu auto-generare 15 placeholdere pentru DOCX/email-uri
+- ✅ **Industries Roadmap** complet (`docs/INDUSTRIES_ROADMAP.md`) — 158 sub-domenii planificate pentru toate 8 industriile
+- 🟡 Stripe live key — așteaptă cheia `sk_live_...` de la user
+- 🟡 QES real — așteaptă contract certSIGN/DigiSign
 
 ## V4.8 — Cross-account Emergent transfer + security + breadth (2026-02-06)
 - ✅ `render.yaml` blueprint pentru auto-deploy Render (backend + frontend static)
@@ -245,18 +257,18 @@ curl -H "Authorization: Bearer $TOKEN" $BACKEND_URL/api/auth/me
 
 | SHA | Data | Mesaj |
 |-----|------|-------|
-| `850b8f6` | 2026-06-06T01:06:42Z | docs(v4.8): PRD + test_credentials refresh with all V4.8 completions |
-| `fcd6345` | 2026-06-06T01:06:41Z | docs(v4.8): PRD + test_credentials refresh with all V4.8 completions |
-| `41ef7cb` | 2026-06-06T01:04:44Z | refactor(developer): split Developer.jsx into focused sub-components |
-| `e25a212` | 2026-06-06T01:04:43Z | refactor(developer): split Developer.jsx into focused sub-components |
-| `8111fcb` | 2026-06-06T01:04:42Z | refactor(developer): split Developer.jsx into focused sub-components |
-| `3556992` | 2026-06-06T01:04:41Z | refactor(developer): split Developer.jsx into focused sub-components |
-| `b438439` | 2026-06-06T01:03:01Z | security(auth): localStorage -> httpOnly Secure SameSite=None cookies (XSS-safe) |
-| `0b34e02` | 2026-06-06T01:03:01Z | security(auth): localStorage -> httpOnly Secure SameSite=None cookies (XSS-safe) |
-| `b9b0a97` | 2026-06-06T01:03:00Z | security(auth): localStorage -> httpOnly Secure SameSite=None cookies (XSS-safe) |
-| `b13ea42` | 2026-06-06T00:59:38Z | refactor(verification): split 93-line verify_documentation into verification.py |
-| `e6011d5` | 2026-06-06T00:59:37Z | refactor(verification): split 93-line verify_documentation into verification.py |
-| `9e71fe6` | 2026-06-06T00:58:14Z | feat(industries): activate all 8 industries with 34 subdomains |
+| `f93bfb6` | 2026-06-06T11:24:28Z | docs(v4.9): PRD + industries roadmap (158 subdomenii planificate) |
+| `52d9df9` | 2026-06-06T11:24:27Z | docs(v4.9): PRD + industries roadmap (158 subdomenii planificate) |
+| `af9aa66` | 2026-06-06T11:21:24Z | feat(company): company profile + auto-placeholders for DOCX/emails |
+| `9b4bc17` | 2026-06-06T11:21:24Z | feat(company): company profile + auto-placeholders for DOCX/emails |
+| `a044dcf` | 2026-06-06T11:21:23Z | feat(company): company profile + auto-placeholders for DOCX/emails |
+| `1d7b3fc` | 2026-06-06T11:21:22Z | feat(company): company profile + auto-placeholders for DOCX/emails |
+| `3f89ef6` | 2026-06-06T11:21:21Z | feat(company): company profile + auto-placeholders for DOCX/emails |
+| `02c52d6` | 2026-06-06T11:18:38Z | feat(lifecycle): 12 statuses + weighted audit score + next best action |
+| `d90e09d` | 2026-06-06T11:18:38Z | feat(lifecycle): 12 statuses + weighted audit score + next best action |
+| `f5d1d00` | 2026-06-06T11:18:37Z | feat(lifecycle): 12 statuses + weighted audit score + next best action |
+| `15fcf33` | 2026-06-06T11:18:36Z | feat(lifecycle): 12 statuses + weighted audit score + next best action |
+| `7bb80c9` | 2026-06-06T11:14:45Z | feat(forum): community forum with industry filters, threads, replies, likes |
 
 Vezi toate commit-urile: https://github.com/dragosserban95/Energy-Project-Design/commits/main
 
