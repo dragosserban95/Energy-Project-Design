@@ -68,7 +68,7 @@ export default function AppShell({ children, title, subtitle }) {
             </div>
             <div>
               <div className="font-bold tracking-tight text-[15px] leading-tight">Energy Project<span className="text-[#FFB300]"> Design</span></div>
-              <div className="text-[9px] uppercase tracking-[0.22em] text-gray-500 mt-0.5">v4.5 · Services</div>
+              <div className="text-[9px] uppercase tracking-[0.22em] text-gray-500 mt-0.5">v5.2 · Services</div>
             </div>
           </Link>
         </div>

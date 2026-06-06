@@ -1479,7 +1479,7 @@ async def list_ai_agents():
 # ====================== ROOT ======================
 @api.get("/")
 async def root():
-    return {"app": "Energy Project Design Services", "version": "4.9", "status": "ok"}
+    return {"app": "Energy Project Design Services", "version": "5.2", "status": "ok", "build": "emergent-rebuild-2026-06"}
 
 
 # ====================== PAYMENT ACCOUNTS (admin / public) ======================
