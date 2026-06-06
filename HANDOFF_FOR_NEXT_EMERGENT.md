@@ -1,5 +1,5 @@
 # 🛟 HANDOFF — Energy Project Design Services
-**Snapshot generated:** 2026-06-06 00:50 UTC
+**Snapshot generated:** 2026-06-06 01:06 UTC
 **Source repo:** https://github.com/dragosserban95/Energy-Project-Design (branch `main`)
 **Preview (current Emergent session):** https://template-stamp-hub.preview.emergentagent.com
 **Production target:** https://energy-project-design-services.onrender.com
@@ -90,13 +90,18 @@ B2B SaaS for Romanian engineering documentation, starting with **gas naturale** 
 - P2: Public verification page `/verify/{doc_id}`
 - P3: Encrypt action_logs and gmail_app_password at rest
 
-## V4.8 — Cross-account Emergent transfer (2026-02-06)
+## V4.8 — Cross-account Emergent transfer + security + breadth (2026-02-06)
 - ✅ `render.yaml` blueprint pentru auto-deploy Render (backend + frontend static)
 - ✅ `backend/github_push.py` + `POST /api/dev/github/push` — developer push direct în repo
 - ✅ Pagina `/developer/github` cu UI completă: status repo, lista commits, formular push fișiere
 - ✅ `backend/handoff.py` + `GET /api/dev/handoff/export` + `POST /api/dev/handoff/push`
-- ✅ Buton "Salvează în GitHub" pe pagina developer → commit-uie `HANDOFF_FOR_NEXT_EMERGENT.md` în rădăcina repo-ului (15.6KB snapshot)
-- ✅ 120 fișiere push-uite în [`dragosserban95/Energy-Project-Design`](https://github.com/dragosserban95/Energy-Project-Design) (backend 20 + frontend 95 + deploy 5)
+- ✅ Buton "Salvează în GitHub" pe pagina developer → commit-uie `HANDOFF_FOR_NEXT_EMERGENT.md` în rădăcina repo-ului
+- ✅ 120+ fișiere push-uite în [`dragosserban95/Energy-Project-Design`](https://github.com/dragosserban95/Energy-Project-Design)
+- ✅ **Refactor auth → httpOnly Secure SameSite=None cookies** (XSS-safe; token nu mai e în localStorage)
+- ✅ **Refactor `verify_documentation()`** (93 linii → modulul `verification.py` cu helper pure-function pentru fiecare check)
+- ✅ **Refactor `Developer.jsx`** (185 linii → 1 page + 3 sub-componente focusate: AccessDenied, ResultPanel, Sidebar)
+- ✅ **Activare toate 8 industriile**: Gaze (5 subdom), Electrică (5), Apă & canalizare (5), Construcții civile (3), Telecomunicații (3), Fotovoltaice (4), Construcții imobile (5), Infrastructură feroviară (4) = **34 subdomenii active**
+- ✅ CORS configurat pentru cookies cross-site (regex pentru `emergentagent.com`, `onrender.com`, `localhost:3000`)
 
 ## Handoff (for any AI / human developer)
 - Code root: `/app/` (backend `/app/backend`, frontend `/app/frontend`)
@@ -198,18 +203,40 @@ Proprietary © ENERGY PROJECT DESIGN SRL 2026.
 
 ## Backend env
 - STRIPE_API_KEY=sk_test_emergent (in /app/backend/.env)
+  - **Production: replace with `sk_live_...` — NO code changes needed**
 - MONGO_URL=mongodb://localhost:27017
 - Gmail: per-user via /api/users/me PATCH
 
 ## App
 - URL: https://template-stamp-hub.preview.emergentagent.com
-- App: Energy Project Design Services v4.5+v4.6
+- App: Energy Project Design Services v4.8
 - Company: ENERGY PROJECT DESIGN SRL, CUI 43151074, J40/12982/2020
+
+## Auth flow (V4.8+)
+- **httpOnly Secure SameSite=None cookies** (XSS-safe — token NEVER in localStorage)
+- Login/Register set the `session_token` cookie automatically
+- Authorization Bearer header is also supported (backward-compat for curl/testing)
+- Logout endpoint clears the cookie and DB session
+
+## Testing examples
+```bash
+# Login + use cookie for all subsequent calls
+curl -c /tmp/c.txt -X POST $BACKEND_URL/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"dragosserban95@gmail.com","password":"Test12345"}'
+curl -b /tmp/c.txt $BACKEND_URL/api/auth/me   # cookie-only auth
+
+# OR use Bearer token (for scripted testing)
+TOKEN=$(curl -s -X POST $BACKEND_URL/api/auth/login -H "Content-Type: application/json" \
+  -d '{"email":"dragosserban95@gmail.com","password":"Test12345"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+curl -H "Authorization: Bearer $TOKEN" $BACKEND_URL/api/auth/me
+```
 
 ## Note for testing
 - Register endpoint requires gdpr_consent=true (Romanian message returned otherwise)
 - Active project: each user has one active at a time; switching via POST /api/projects/{id}/activate
-- System templates seeded at backend startup (4 templates for gas engineering)
+- System templates seeded at backend startup (4-6 templates for gas engineering + VGD/RTE)
+- All 8 industries are now active (34 subdomains)
 
 
 ---
@@ -218,18 +245,18 @@ Proprietary © ENERGY PROJECT DESIGN SRL 2026.
 
 | SHA | Data | Mesaj |
 |-----|------|-------|
-| `8f205f0` | 2026-06-06T00:50:26Z | docs(prd): mark V4.8 cross-account Emergent transfer features done |
-| `d4c87a9` | 2026-06-06T00:49:08Z | docs: refresh HANDOFF_FOR_NEXT_EMERGENT.md |
-| `de504dc` | 2026-06-06T00:49:06Z | feat(dev): handoff export + push for cross-account Emergent transfer |
-| `4c128a1` | 2026-06-06T00:49:06Z | feat(dev): handoff export + push for cross-account Emergent transfer |
-| `7b7c9fe` | 2026-06-06T00:49:05Z | feat(dev): handoff export + push for cross-account Emergent transfer |
-| `b485aa5` | 2026-06-05T21:29:25Z | feat(dev): GitHub push UI + /api/dev/github/{status,push} endpoints |
-| `b98d1fa` | 2026-06-05T21:29:24Z | feat(dev): GitHub push UI + /api/dev/github/{status,push} endpoints |
-| `8f12a2b` | 2026-06-05T21:29:24Z | feat(dev): GitHub push UI + /api/dev/github/{status,push} endpoints |
-| `bc93489` | 2026-06-05T21:29:23Z | feat(dev): GitHub push UI + /api/dev/github/{status,push} endpoints |
-| `ea164fc` | 2026-06-05T21:29:22Z | feat(dev): GitHub push UI + /api/dev/github/{status,push} endpoints |
-| `e5bbcc7` | 2026-06-05T21:26:55Z | sync(frontend): Templates.jsx, Termeni.jsx, Verification.jsx... |
-| `914d12e` | 2026-06-05T21:26:54Z | sync(frontend): Templates.jsx, Termeni.jsx, Verification.jsx... |
+| `850b8f6` | 2026-06-06T01:06:42Z | docs(v4.8): PRD + test_credentials refresh with all V4.8 completions |
+| `fcd6345` | 2026-06-06T01:06:41Z | docs(v4.8): PRD + test_credentials refresh with all V4.8 completions |
+| `41ef7cb` | 2026-06-06T01:04:44Z | refactor(developer): split Developer.jsx into focused sub-components |
+| `e25a212` | 2026-06-06T01:04:43Z | refactor(developer): split Developer.jsx into focused sub-components |
+| `8111fcb` | 2026-06-06T01:04:42Z | refactor(developer): split Developer.jsx into focused sub-components |
+| `3556992` | 2026-06-06T01:04:41Z | refactor(developer): split Developer.jsx into focused sub-components |
+| `b438439` | 2026-06-06T01:03:01Z | security(auth): localStorage -> httpOnly Secure SameSite=None cookies (XSS-safe) |
+| `0b34e02` | 2026-06-06T01:03:01Z | security(auth): localStorage -> httpOnly Secure SameSite=None cookies (XSS-safe) |
+| `b9b0a97` | 2026-06-06T01:03:00Z | security(auth): localStorage -> httpOnly Secure SameSite=None cookies (XSS-safe) |
+| `b13ea42` | 2026-06-06T00:59:38Z | refactor(verification): split 93-line verify_documentation into verification.py |
+| `e6011d5` | 2026-06-06T00:59:37Z | refactor(verification): split 93-line verify_documentation into verification.py |
+| `9e71fe6` | 2026-06-06T00:58:14Z | feat(industries): activate all 8 industries with 34 subdomains |
 
 Vezi toate commit-urile: https://github.com/dragosserban95/Energy-Project-Design/commits/main
 
