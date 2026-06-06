@@ -1,5 +1,5 @@
 # 🛟 HANDOFF — Energy Project Design Services
-**Snapshot generated:** 2026-06-06 00:49 UTC
+**Snapshot generated:** 2026-06-06 00:50 UTC
 **Source repo:** https://github.com/dragosserban95/Energy-Project-Design (branch `main`)
 **Preview (current Emergent session):** https://template-stamp-hub.preview.emergentagent.com
 **Production target:** https://energy-project-design-services.onrender.com
@@ -83,11 +83,20 @@ B2B SaaS for Romanian engineering documentation, starting with **gas naturale** 
 - P1: Encrypt `qes_credentials` at rest (Fernet/KMS)
 - P1: Implement real certSIGN/DigiSign/Trans Sped subclasses (needs API contract)
 - P1: Switch to Stripe live key (`sk_live_...`)
-- P2: PDF export alongside DOCX
+- P1: Refactor auth → httpOnly cookies (`AuthContext.jsx`, `auth.py`, `server.py`, `api.js`)
+- P2: PDF export alongside DOCX ✅ DONE (reportlab)
 - P2: Team workspaces with role inheritance
 - P2: Activate electrical / water-sewage / civil / telecom industries
 - P2: Public verification page `/verify/{doc_id}`
 - P3: Encrypt action_logs and gmail_app_password at rest
+
+## V4.8 — Cross-account Emergent transfer (2026-02-06)
+- ✅ `render.yaml` blueprint pentru auto-deploy Render (backend + frontend static)
+- ✅ `backend/github_push.py` + `POST /api/dev/github/push` — developer push direct în repo
+- ✅ Pagina `/developer/github` cu UI completă: status repo, lista commits, formular push fișiere
+- ✅ `backend/handoff.py` + `GET /api/dev/handoff/export` + `POST /api/dev/handoff/push`
+- ✅ Buton "Salvează în GitHub" pe pagina developer → commit-uie `HANDOFF_FOR_NEXT_EMERGENT.md` în rădăcina repo-ului (15.6KB snapshot)
+- ✅ 120 fișiere push-uite în [`dragosserban95/Energy-Project-Design`](https://github.com/dragosserban95/Energy-Project-Design) (backend 20 + frontend 95 + deploy 5)
 
 ## Handoff (for any AI / human developer)
 - Code root: `/app/` (backend `/app/backend`, frontend `/app/frontend`)
@@ -209,6 +218,8 @@ Proprietary © ENERGY PROJECT DESIGN SRL 2026.
 
 | SHA | Data | Mesaj |
 |-----|------|-------|
+| `8f205f0` | 2026-06-06T00:50:26Z | docs(prd): mark V4.8 cross-account Emergent transfer features done |
+| `d4c87a9` | 2026-06-06T00:49:08Z | docs: refresh HANDOFF_FOR_NEXT_EMERGENT.md |
 | `de504dc` | 2026-06-06T00:49:06Z | feat(dev): handoff export + push for cross-account Emergent transfer |
 | `4c128a1` | 2026-06-06T00:49:06Z | feat(dev): handoff export + push for cross-account Emergent transfer |
 | `7b7c9fe` | 2026-06-06T00:49:05Z | feat(dev): handoff export + push for cross-account Emergent transfer |
@@ -219,8 +230,6 @@ Proprietary © ENERGY PROJECT DESIGN SRL 2026.
 | `ea164fc` | 2026-06-05T21:29:22Z | feat(dev): GitHub push UI + /api/dev/github/{status,push} endpoints |
 | `e5bbcc7` | 2026-06-05T21:26:55Z | sync(frontend): Templates.jsx, Termeni.jsx, Verification.jsx... |
 | `914d12e` | 2026-06-05T21:26:54Z | sync(frontend): Templates.jsx, Termeni.jsx, Verification.jsx... |
-| `e27814a` | 2026-06-05T21:26:53Z | sync(frontend): Templates.jsx, Termeni.jsx, Verification.jsx... |
-| `da1d8f8` | 2026-06-05T21:26:52Z | sync(frontend): Templates.jsx, Termeni.jsx, Verification.jsx... |
 
 Vezi toate commit-urile: https://github.com/dragosserban95/Energy-Project-Design/commits/main
 
