@@ -115,8 +115,40 @@ async def create_reply(user, thread_id: str, payload: ReplyCreate, reply_id: str
         {"thread_id": thread_id},
         {"$inc": {"reply_count": 1}, "$set": {"last_activity_at": doc["created_at"]}},
     )
+    # Auto-subscribe author of reply to thread updates
+    await subscribe(user.user_id, thread_id)
     doc.pop("_id", None)
     return doc
+
+
+# ============================================================
+# Watchers / subscriptions
+# ============================================================
+async def subscribe(user_id: str, thread_id: str) -> bool:
+    """Subscribe a user to email notifications for a thread."""
+    res = await db.forum_subscriptions.update_one(
+        {"user_id": user_id, "thread_id": thread_id},
+        {"$set": {"user_id": user_id, "thread_id": thread_id, "subscribed_at": _now()}},
+        upsert=True,
+    )
+    return bool(res.upserted_id) or res.modified_count > 0
+
+
+async def unsubscribe(user_id: str, thread_id: str) -> bool:
+    res = await db.forum_subscriptions.delete_one({"user_id": user_id, "thread_id": thread_id})
+    return res.deleted_count > 0
+
+
+async def is_subscribed(user_id: str, thread_id: str) -> bool:
+    return bool(await db.forum_subscriptions.find_one({"user_id": user_id, "thread_id": thread_id}))
+
+
+async def subscribers_for_thread(thread_id: str, exclude_user_id: Optional[str] = None) -> list:
+    q = {"thread_id": thread_id}
+    if exclude_user_id:
+        q["user_id"] = {"$ne": exclude_user_id}
+    cursor = db.forum_subscriptions.find(q, {"_id": 0, "user_id": 1})
+    return [s["user_id"] async for s in cursor]
 
 
 async def like_thread(thread_id: str, user_id: str) -> Optional[int]:

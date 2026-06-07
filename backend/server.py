@@ -34,6 +34,7 @@ from auth import (
 from docx_processor import extract_placeholders, replace_placeholders, insert_stamp
 from signing import parse_p12, sign_document
 from email_sender import send_email_with_attachment
+import email_sender
 import qes_provider
 import plans as plans_module
 import calc_engine
@@ -51,6 +52,7 @@ import project_lifecycle as lifecycle
 import company_profile as company_module
 import clients_crm
 import companies_directory
+import jobs_board
 import hashlib
 
 from emergentintegrations.payments.stripe.checkout import (
@@ -1466,7 +1468,56 @@ async def forum_create_reply(thread_id: str, payload: forum_module.ReplyCreate, 
         "meta": {"thread_id": thread_id, "reply_id": reply_id},
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
+
+    # Notify subscribers (exclude reply author)
+    try:
+        thread = await db.forum_threads.find_one({"thread_id": thread_id}, {"_id": 0})
+        if thread:
+            subscriber_ids = await forum_module.subscribers_for_thread(thread_id, exclude_user_id=user.user_id)
+            if subscriber_ids:
+                subscribers = await db.users.find(
+                    {"user_id": {"$in": subscriber_ids}},
+                    {"_id": 0, "email": 1, "name": 1},
+                ).to_list(200)
+                emails = [s["email"] for s in subscribers if s.get("email")]
+                if emails:
+                    base_url = os.environ.get("PUBLIC_APP_URL", "https://template-stamp-hub.preview.emergentagent.com").rstrip("/")
+                    thread_url = f"{base_url}/forum/{thread_id}"
+                    subject = f"[EPD Forum] Raspuns nou: {thread['title'][:80]}"
+                    body = (
+                        f"Buna,\n\n"
+                        f"{doc['author_name']} a raspuns la firul: {thread['title']}\n\n"
+                        f"{doc['body'][:500]}\n\n"
+                        f"Vezi discutia: {thread_url}\n\n"
+                        f"— Energy Project Design Services\n"
+                        f"(Daca nu mai vrei notificari, dezaboneaza-te din pagina firului.)"
+                    )
+                    # Use platform-wide creds for notifications
+                    email_sender.send_simple_email("", "", emails, subject, body)
+    except Exception as e:
+        logger.warning(f"Forum reply notification failed: {e}")
+
     return doc
+
+
+@api.post("/forum/threads/{thread_id}/subscribe")
+async def forum_subscribe(thread_id: str, user: User = Depends(get_current_user)):
+    thread = await db.forum_threads.find_one({"thread_id": thread_id}, {"thread_id": 1})
+    if not thread:
+        raise HTTPException(status_code=404, detail="Discuție inexistentă")
+    ok = await forum_module.subscribe(user.user_id, thread_id)
+    return {"subscribed": True, "changed": ok}
+
+
+@api.post("/forum/threads/{thread_id}/unsubscribe")
+async def forum_unsubscribe(thread_id: str, user: User = Depends(get_current_user)):
+    ok = await forum_module.unsubscribe(user.user_id, thread_id)
+    return {"subscribed": False, "changed": ok}
+
+
+@api.get("/forum/threads/{thread_id}/subscription-status")
+async def forum_subscription_status(thread_id: str, user: User = Depends(get_current_user)):
+    return {"subscribed": await forum_module.is_subscribed(user.user_id, thread_id)}
 
 
 @api.post("/forum/threads/{thread_id}/like")
@@ -1717,6 +1768,86 @@ async def companies_delete(company_id: str, user: User = Depends(get_current_use
         raise HTTPException(status_code=403, detail="Doar developer-ul sau submitter-ul pot șterge.")
     ok = await companies_directory.delete_company(company_id)
     return {"deleted": ok}
+
+
+# ====================== JOBS BOARD ======================
+@api.get("/jobs/types")
+async def jobs_list_types():
+    return jobs_board.JOB_TYPES
+
+
+@api.get("/jobs/stats")
+async def jobs_get_stats():
+    return await jobs_board.jobs_stats()
+
+
+@api.get("/jobs")
+async def jobs_list(job_type: Optional[str] = None, industry: Optional[str] = None, status: str = "open"):
+    return await jobs_board.list_jobs(job_type=job_type, industry=industry, status=status)
+
+
+@api.post("/jobs")
+async def jobs_create(payload: jobs_board.JobIn, user: User = Depends(get_current_user)):
+    if payload.job_type not in [t["id"] for t in jobs_board.JOB_TYPES]:
+        raise HTTPException(status_code=400, detail="Tip job invalid")
+    jid = new_id("job_")
+    doc = await jobs_board.create_job(user, payload, jid)
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": user.user_id, "action": "job.create",
+        "meta": {"job_id": jid, "type": payload.job_type, "title": payload.title[:80]},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return doc
+
+
+@api.get("/jobs/{job_id}")
+async def jobs_get(job_id: str):
+    doc = await jobs_board.get_job(job_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Job inexistent")
+    return doc
+
+
+@api.patch("/jobs/{job_id}")
+async def jobs_update(job_id: str, payload: dict, user: User = Depends(get_current_user)):
+    existing = await jobs_board.get_job(job_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Job inexistent")
+    if not user.is_developer and existing.get("author_id") != user.user_id:
+        raise HTTPException(status_code=403, detail="Doar autorul sau developer-ul pot edita.")
+    return await jobs_board.update_job(job_id, payload)
+
+
+@api.delete("/jobs/{job_id}")
+async def jobs_delete(job_id: str, user: User = Depends(get_current_user)):
+    existing = await jobs_board.get_job(job_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Job inexistent")
+    if not user.is_developer and existing.get("author_id") != user.user_id:
+        raise HTTPException(status_code=403, detail="Doar autorul sau developer-ul pot șterge.")
+    ok = await jobs_board.delete_job(job_id)
+    return {"deleted": ok}
+
+
+@api.post("/jobs/{job_id}/apply")
+async def jobs_apply(job_id: str, payload: jobs_board.JobApplication, user: User = Depends(get_current_user)):
+    aid = new_id("app_")
+    doc = await jobs_board.apply_to_job(user, job_id, payload, aid)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Job inexistent")
+    if "error" in doc:
+        raise HTTPException(status_code=400, detail=doc["error"])
+    return doc
+
+
+@api.get("/jobs/{job_id}/applications")
+async def jobs_get_applications(job_id: str, user: User = Depends(get_current_user)):
+    existing = await jobs_board.get_job(job_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Job inexistent")
+    if not user.is_developer and existing.get("author_id") != user.user_id:
+        raise HTTPException(status_code=403, detail="Doar autorul vede aplicările.")
+    return await jobs_board.list_applications_for_job(job_id)
 
 
 app.include_router(api)

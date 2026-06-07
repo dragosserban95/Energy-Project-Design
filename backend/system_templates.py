@@ -214,6 +214,126 @@ def _build_certificare_rte() -> bytes:
     return out.getvalue()
 
 
+# ====================== FOTOVOLTAICE TEMPLATES ======================
+
+def _build_avc_prosumator_fv() -> bytes:
+    """Aviz tehnic de racordare pentru prosumator FV (< 27 kWp casnic)."""
+    d = Document()
+    _h(d, "CERERE AVIZ TEHNIC DE RACORDARE — PROSUMATOR FOTOVOLTAIC")
+    d.add_paragraph()
+    _p(d, "Către: {{ose}}")
+    d.add_paragraph()
+    _p(d, "Subsemnatul/Subscrisa {{beneficiar}}, cu domiciliul/sediul în {{adresa_lucrare}}, localitatea {{localitate}}, județul {{judet}}, telefon {{telefon}}, email {{email}}, vă rog să eliberați Aviz Tehnic de Racordare (ATR) pentru instalația fotovoltaică proprie.")
+    d.add_paragraph()
+    _p(d, "Date tehnice ale instalației FV:", bold=True)
+    _p(d, "• Putere instalată DC: {{putere_dc_kwp}} kWp")
+    _p(d, "• Putere maximă AC injectată: {{putere_ac_kw}} kW")
+    _p(d, "• Număr panouri: {{numar_panouri}}")
+    _p(d, "• Putere unitară panou: {{putere_panou_wp}} Wp")
+    _p(d, "• Marcă invertor: {{marca_invertor}}")
+    _p(d, "• Producție estimată anuală: {{productie_anuala_kwh}} kWh/an")
+    _p(d, "• Tip racordare: {{tip_racordare}} (monofazat / trifazat)")
+    _p(d, "• Sistem stocare BESS: {{stocare_kwh}} kWh (dacă există)")
+    d.add_paragraph()
+    _p(d, "Date proiectant:", bold=True)
+    _p(d, "Nume societate: {{nume_societate}}")
+    _p(d, "CUI: {{cui_societate}}")
+    _p(d, "Atestat ANRE: {{atestat_anre}}")
+    _p(d, "Reprezentant legal: {{reprezentant_legal}}")
+    d.add_paragraph()
+    _p(d, "Anexe:", bold=True)
+    _p(d, "• Schema electrică monofilară")
+    _p(d, "• Certificat de urbanism")
+    _p(d, "• Extras de carte funciară")
+    _p(d, "• Memoriu tehnic + dimensionare")
+    _p(d, "• Buletin energetic (dacă e cazul)")
+    d.add_paragraph()
+    _p(d, "Data: {{data_document}}")
+    _p(d, "Semnătura solicitant: ____________________")
+    out = io.BytesIO()
+    d.save(out)
+    return out.getvalue()
+
+
+def _build_memoriu_fv_rezidential() -> bytes:
+    d = Document()
+    _h(d, "MEMORIU TEHNIC — INSTALAȚIE FOTOVOLTAICĂ REZIDENȚIALĂ")
+    d.add_paragraph()
+    _p(d, "1. DATE GENERALE", bold=True)
+    _p(d, "Denumirea lucrării: Instalație FV rezidențială pentru autoconsum + injecție (prosumator)")
+    _p(d, "Amplasament: {{adresa_lucrare}}, localitatea {{localitate}}, județul {{judet}}")
+    _p(d, "Beneficiar: {{beneficiar}}")
+    _p(d, "Tip clădire: {{tip_cladire}}")
+    _p(d, "Suprafață disponibilă acoperiș: {{suprafata_acoperis_mp}} mp")
+    _p(d, "Orientare azimut: {{azimut}}°")
+    _p(d, "Înclinație panouri: {{inclinatie}}°")
+    d.add_paragraph()
+    _p(d, "2. DESCRIEREA INSTALAȚIEI", bold=True)
+    _p(d, "Putere instalată DC: {{putere_dc_kwp}} kWp")
+    _p(d, "Putere maximă AC: {{putere_ac_kw}} kW")
+    _p(d, "Tehnologie panouri: {{tehnologie_panouri}}")
+    _p(d, "Tip invertor: {{tip_invertor}}")
+    _p(d, "Eficiență invertor: {{randament_invertor}} %")
+    d.add_paragraph()
+    _p(d, "3. DIMENSIONARE & RANDAMENT", bold=True)
+    _p(d, "Iradiere medie anuală: {{iradiere_kwh_mp_an}} kWh/mp/an")
+    _p(d, "Producție specifică: {{productie_specifica}} kWh/kWp/an")
+    _p(d, "Producție anuală estimată: {{productie_anuala_kwh}} kWh")
+    _p(d, "Consum anual locuință: {{consum_anual_kwh}} kWh")
+    _p(d, "Grad autoconsum estimat: {{grad_autoconsum}} %")
+    d.add_paragraph()
+    _p(d, "4. PROTECȚII & SIGURANȚĂ", bold=True)
+    _p(d, "Protecții AC: întreruptor diferențial 30 mA + supratensiuni clasă II")
+    _p(d, "Protecții DC: siguranțe DC, paratrăsnet conform IEC 62305")
+    _p(d, "Anti-islanding: conform NTS/2021 ANRE")
+    d.add_paragraph()
+    _p(d, "5. CONFORMITATE LEGALĂ", bold=True)
+    _p(d, "OUG 163/2022 — Programul Casa Verde Fotovoltaic")
+    _p(d, "Ord. ANRE 228/2018 — racordare prosumator")
+    _p(d, "Ord. ANRE 102/2023 — modificări recente")
+    _p(d, "PE 124/95 — proiectare instalații electrice")
+    d.add_paragraph()
+    _p(d, "Proiectant: {{nume_proiectant}}, atestat ANRE: {{atestat_anre}}")
+    _p(d, "Data: {{data_document}}")
+    out = io.BytesIO()
+    d.save(out)
+    return out.getvalue()
+
+
+def _build_borderou_fv() -> bytes:
+    d = Document()
+    _h(d, "BORDEROU DOCUMENTE DOSAR PROSUMATOR FOTOVOLTAIC")
+    d.add_paragraph()
+    _p(d, "Solicitant: {{beneficiar}}")
+    _p(d, "Adresă: {{adresa_lucrare}}, {{localitate}}, {{judet}}")
+    d.add_paragraph()
+    _p(d, "Documente componente dosar:", bold=True)
+    for line in [
+        "1. Cerere ATR (Aviz Tehnic de Racordare)",
+        "2. Memoriu tehnic instalație FV",
+        "3. Schema electrică monofilară",
+        "4. Schema unifilară interior",
+        "5. Plan situație + plan amplasament",
+        "6. Certificat de urbanism",
+        "7. Extras de carte funciară (max. 30 zile)",
+        "8. Acord vecini (dacă structura impune)",
+        "9. Buletin energetic clădire",
+        "10. Schema protecții AC/DC",
+        "11. Fișa tehnică panouri",
+        "12. Fișa tehnică invertor",
+        "13. Certificat garanție echipamente",
+        "14. Atestat ANRE proiectant",
+        "15. Atestat ISCIR montator (dacă > 10 kWp)",
+    ]:
+        _p(d, line)
+    d.add_paragraph()
+    _p(d, "Proiectant: {{nume_proiectant}}")
+    _p(d, "Data: {{date_proiect_data}}")
+    out = io.BytesIO()
+    d.save(out)
+    return out.getvalue()
+
+
 SYSTEM_TEMPLATES = [
     {
         "key": "sys_cerere_racordare_gaz",
@@ -256,6 +376,27 @@ SYSTEM_TEMPLATES = [
         "industry": "gas_engineering",
         "subdomain": "bransamente_gaz",
         "builder": _build_certificare_rte,
+    },
+    {
+        "key": "sys_atr_prosumator_fv",
+        "name": "Cerere ATR prosumator FV (sistem)",
+        "industry": "photovoltaic",
+        "subdomain": "instalatii_fv_rezidential",
+        "builder": _build_avc_prosumator_fv,
+    },
+    {
+        "key": "sys_memoriu_fv_rezidential",
+        "name": "Memoriu tehnic FV rezidențial (sistem)",
+        "industry": "photovoltaic",
+        "subdomain": "instalatii_fv_rezidential",
+        "builder": _build_memoriu_fv_rezidential,
+    },
+    {
+        "key": "sys_borderou_fv",
+        "name": "Borderou dosar prosumator FV (sistem)",
+        "industry": "photovoltaic",
+        "subdomain": "instalatii_fv_rezidential",
+        "builder": _build_borderou_fv,
     },
 ]
 

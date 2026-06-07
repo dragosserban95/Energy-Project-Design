@@ -5,7 +5,7 @@ import LicenseTimer from './LicenseTimer';
 import {
   LayoutDashboard, ClipboardList, Settings2, Calculator, FileText, FileCheck2,
   Stamp, ShieldCheck, Mail, BadgeCheck, GaugeCircle, CreditCard, Settings, LogOut,
-  Sparkles, Wrench, ListChecks, Flame, ChevronRight, FolderKanban, Github, Banknote, MessageSquare, Building2, Users,
+  Sparkles, Wrench, ListChecks, Flame, ChevronRight, FolderKanban, Github, Banknote, MessageSquare, Building2, Users, Target,
 } from 'lucide-react';
 
 const SECTIONS = [
@@ -37,6 +37,7 @@ const SECTIONS = [
       { to: '/companii', label: 'Companii & parteneri', icon: Building2, tid: 'nav-companies' },
       { to: '/forum', label: 'Forum comunitate', icon: MessageSquare, tid: 'nav-forum' },
       { to: '/verifica', label: 'Verifică documentație', icon: GaugeCircle, tid: 'nav-verifica' },
+      { to: '/lifecycle', label: 'Workflow proiect (Kanban)', icon: Target, tid: 'nav-lifecycle' },
       { to: '/ai', label: 'AI Assistant', icon: Sparkles, tid: 'nav-ai' },
       { to: '/audit', label: 'Audit interfață', icon: ListChecks, tid: 'nav-audit' },
     ],

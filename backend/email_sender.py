@@ -63,3 +63,41 @@ def send_email_with_attachment(
         return {"ok": False, "error": "Autentificare Gmail eșuată. Verificați adresa și App Password-ul (16 caractere)."}
     except Exception as e:
         return {"ok": False, "error": f"Eroare SMTP: {str(e)}"}
+
+
+def send_simple_email(
+    gmail_user: str,
+    gmail_password: str,
+    recipients: List[str],
+    subject: str,
+    body: str,
+    html_body: Optional[str] = None,
+) -> dict:
+    """Send a plain notification email (no attachment). Falls back to platform creds.
+
+    Used for forum reply notifications, system alerts, etc.
+    """
+    if not gmail_user or not gmail_password:
+        gmail_user = os.environ.get("GMAIL_USER", "").strip()
+        gmail_password = os.environ.get("GMAIL_APP_PASSWORD", "").strip()
+    if not gmail_user or not gmail_password:
+        return {"ok": False, "error": "SMTP creds missing"}
+
+    from_name = os.environ.get("SMTP_FROM_NAME", "").strip()
+    from_header = f"{from_name} <{gmail_user}>" if from_name else gmail_user
+
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = from_header
+    msg["To"] = ", ".join(recipients)
+    msg.set_content(body or "")
+    if html_body:
+        msg.add_alternative(html_body, subtype="html")
+
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=20) as server:
+            server.login(gmail_user, gmail_password)
+            server.send_message(msg)
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "error": f"SMTP: {str(e)}"}
