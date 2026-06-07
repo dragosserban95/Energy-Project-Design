@@ -15,6 +15,8 @@ import PaymentAccounts from './pages/PaymentAccounts';
 import Forum from './pages/Forum';
 import CompanyProfile from './pages/CompanyProfile';
 import AuditLogs from './pages/AuditLogs';
+import Clients from './pages/Clients';
+import Companies from './pages/Companies';
 import ProjectData from './pages/ProjectData';
 import TechnicalData from './pages/TechnicalData';
 import SmartCalc from './pages/SmartCalc';
@@ -34,11 +36,6 @@ import AuthCallback from './pages/AuthCallback';
 import Termeni from './pages/Termeni';
 import Confidentialitate from './pages/Confidentialitate';
 import Gdpr from './pages/Gdpr';
-import IndustriesHub from './pages/IndustriesHub';
-import IndustryDetail from './pages/IndustryDetail';
-import FeaturesHub from './pages/FeaturesHub';
-import FeatureDetail from './pages/FeatureDetail';
-import DeveloperProgres from './pages/DeveloperProgres';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -71,6 +68,8 @@ function AppRouter() {
       <Route path="/forum/:threadId" element={<ProtectedRoute><Forum /></ProtectedRoute>} />
       <Route path="/company" element={<ProtectedRoute><CompanyProfile /></ProtectedRoute>} />
       <Route path="/logs" element={<ProtectedRoute><AuditLogs /></ProtectedRoute>} />
+      <Route path="/clienti" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
+      <Route path="/companii" element={<ProtectedRoute><Companies /></ProtectedRoute>} />
       <Route path="/proiect" element={<ProtectedRoute><ProjectData /></ProtectedRoute>} />
       <Route path="/tehnice" element={<ProtectedRoute><TechnicalData /></ProtectedRoute>} />
       <Route path="/calcul" element={<ProtectedRoute><SmartCalc /></ProtectedRoute>} />
@@ -85,17 +84,6 @@ function AppRouter() {
       <Route path="/certificate" element={<ProtectedRoute><Certificates /></ProtectedRoute>} />
       <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-
-      {/* Industries Hub + per-industry skeleton */}
-      <Route path="/industrii" element={<ProtectedRoute><IndustriesHub /></ProtectedRoute>} />
-      <Route path="/industrii/:industryId" element={<ProtectedRoute><IndustryDetail /></ProtectedRoute>} />
-
-      {/* Features Hub (Feat-uri vision) + skeleton sub-pages */}
-      <Route path="/feat-uri" element={<ProtectedRoute><FeaturesHub /></ProtectedRoute>} />
-      <Route path="/feat-uri/:featureId" element={<ProtectedRoute><FeatureDetail /></ProtectedRoute>} />
-
-      {/* Progress page (developer-only) */}
-      <Route path="/developer/progres" element={<ProtectedRoute><DeveloperProgres /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
