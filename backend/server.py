@@ -49,6 +49,8 @@ import payment_accounts as pay_accounts
 import forum as forum_module
 import project_lifecycle as lifecycle
 import company_profile as company_module
+import clients_crm
+import companies_directory
 import hashlib
 
 from emergentintegrations.payments.stripe.checkout import (
@@ -1342,144 +1344,10 @@ async def get_vision(user: User = Depends(get_current_user)):
         return {"vision": "", "exists": False, "error": str(e)}
 
 
-# ====================== PROGRESS TRACKER & LISTS (developer-only) ======================
-import json as _json_mod
-
-_LIST_FILES_MAP = {
-    "todo": "/app/memory/LIST_1_TODO.md",
-    "suggested": "/app/memory/LIST_2_SUGGESTED.md",
-    "futuristic": "/app/memory/LIST_3_FUTURISTIC.md",
-    "big_update": "/app/memory/LIST_4_BIG_UPDATE_WEB_RESEARCH.md",
-}
-
-
-@api.get("/dev/progress")
-async def dev_progress(user: User = Depends(get_current_user)):
-    """Return the STEP_TRACKER.json content so developer page can render phases + steps."""
-    _ensure_developer(user)
-    tracker_path = Path("/app/memory/STEP_TRACKER.json")
-    if not tracker_path.exists():
-        return {"meta": {}, "phases": [], "checkpoints": [], "last_emergent_account_command": None}
-    try:
-        return _json_mod.loads(tracker_path.read_text(encoding="utf-8"))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Tracker read error: {e}")
-
-
-@api.get("/dev/list/{list_id}")
-async def dev_list(list_id: str, user: User = Depends(get_current_user)):
-    """Return the markdown content of one of the 4 planning lists."""
-    _ensure_developer(user)
-    file_path = _LIST_FILES_MAP.get(list_id)
-    if not file_path:
-        raise HTTPException(status_code=404, detail="List inexistentă (folosește: todo|suggested|futuristic|big_update)")
-    p = Path(file_path)
-    if not p.exists():
-        return {"id": list_id, "content": "", "exists": False}
-    try:
-        return {"id": list_id, "content": p.read_text(encoding="utf-8"), "exists": True, "size": p.stat().st_size}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"List read error: {e}")
-
-
-@api.post("/dev/list/{list_id}/append")
-async def dev_list_append(list_id: str, payload: dict, user: User = Depends(get_current_user)):
-    """Append a markdown block at the end of a list (append-only, never overwrite)."""
-    _ensure_developer(user)
-    file_path = _LIST_FILES_MAP.get(list_id)
-    if not file_path:
-        raise HTTPException(status_code=404, detail="List inexistentă")
-    block = (payload or {}).get("block", "").strip()
-    if not block:
-        raise HTTPException(status_code=400, detail="Lipsește 'block' (text markdown).")
-    p = Path(file_path)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    appended_block = f"\n\n---\n### Append [{timestamp}]\n{block}\n"
-    with p.open("a", encoding="utf-8") as fh:
-        fh.write(appended_block)
-    return {"ok": True, "id": list_id, "appended_chars": len(appended_block), "timestamp": timestamp}
-
-
-# ====================== FEAT-URI STATUS (public-ish, sumar) ======================
-FEAT_HUB_STATUS = {
-    "seap": "planned",
-    "ai-agents": "skeleton",
-    "subscribers": "planned",
-    "jobs": "planned",
-    "reports": "planned",
-    "legal-automation": "planned",
-    "partners": "planned",
-    "volunteering": "planned",
-    "developer-plan": "partial",
-    "community": "partial",
-}
-
-
-@api.get("/feat/status")
-async def feat_status():
-    """Returns the status of the vision sub-modules (active/partial/skeleton/planned)."""
-    return {
-        "features": [
-            {"id": fid, "status": st} for fid, st in FEAT_HUB_STATUS.items()
-        ],
-        "summary": {
-            "total": len(FEAT_HUB_STATUS),
-            "active": sum(1 for s in FEAT_HUB_STATUS.values() if s == "active"),
-            "partial": sum(1 for s in FEAT_HUB_STATUS.values() if s == "partial"),
-            "skeleton": sum(1 for s in FEAT_HUB_STATUS.values() if s == "skeleton"),
-            "planned": sum(1 for s in FEAT_HUB_STATUS.values() if s == "planned"),
-        },
-    }
-
-
-# ====================== AI AGENTS REGISTRY (skeleton — 4 specialized agents) ======================
-AI_AGENTS_REGISTRY = [
-    {
-        "id": "producer",
-        "name": "Producer AI Agent",
-        "tagline": "Analizează documentația veche și sugerează actualizări conform normelor noi.",
-        "model_recommendation": "gpt-4o",
-        "context_scope": "documente firmei + norme ANRE/ANRP/ISCIR/AFER curente",
-        "status": "planned",
-    },
-    {
-        "id": "user",
-        "name": "User AI Agent",
-        "tagline": "Ghidează utilizatorul pe formular cu validare în timp real și sugestii contextuale.",
-        "model_recommendation": "gpt-4o-mini",
-        "context_scope": "proiectul activ + tipul de utilizator (proiectant/executant/RTE/VGD)",
-        "status": "skeleton",
-    },
-    {
-        "id": "client",
-        "name": "Client AI Agent",
-        "tagline": "Chat clienți finali cu recomandări tarife/servicii pe baza istoricului.",
-        "model_recommendation": "gpt-4o-mini",
-        "context_scope": "istoric servicii client + cataloagele firmei + reduceri active",
-        "status": "planned",
-    },
-    {
-        "id": "developer",
-        "name": "Developer AI Agent",
-        "tagline": "Modificări cod custom + dezvoltare funcții (Plan Mode + Apply Mode în viitor).",
-        "model_recommendation": "gpt-4o + tools",
-        "context_scope": "repo /app/* + safety rules + diff preview",
-        "status": "partial",
-    },
-]
-
-
-@api.get("/ai/agents")
-async def list_ai_agents():
-    """Public read-only registry of the 4 specialized AI agents from the vision."""
-    return {"agents": AI_AGENTS_REGISTRY, "count": len(AI_AGENTS_REGISTRY)}
-
-
 # ====================== ROOT ======================
 @api.get("/")
 async def root():
-    return {"app": "Energy Project Design Services", "version": "5.2", "status": "ok", "build": "emergent-rebuild-2026-06"}
+    return {"app": "Energy Project Design Services", "version": "5.0", "status": "ok"}
 
 
 # ====================== PAYMENT ACCOUNTS (admin / public) ======================
@@ -1759,6 +1627,96 @@ async def get_company_placeholders(user: User = Depends(get_current_user)):
     """Returns the placeholder map derived from the company profile."""
     profile = await company_module.get_profile(user.user_id)
     return company_module.placeholders_from_profile(profile)
+
+
+# ====================== CLIENTS CRM ======================
+@api.get("/clients")
+async def crm_list_clients(status: Optional[str] = None, industry: Optional[str] = None, user: User = Depends(get_current_user)):
+    return await clients_crm.list_clients(user.user_id, status=status, industry=industry)
+
+
+@api.post("/clients")
+async def crm_create_client(payload: clients_crm.ClientIn, user: User = Depends(get_current_user)):
+    cid = new_id("cli_")
+    doc = await clients_crm.create_client(user.user_id, payload, cid)
+    return doc
+
+
+@api.get("/clients/{client_id}")
+async def crm_get_client(client_id: str, user: User = Depends(get_current_user)):
+    doc = await clients_crm.get_client(user.user_id, client_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Client inexistent")
+    return doc
+
+
+@api.patch("/clients/{client_id}")
+async def crm_update_client(client_id: str, payload: dict, user: User = Depends(get_current_user)):
+    doc = await clients_crm.update_client(user.user_id, client_id, payload)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Client inexistent")
+    return doc
+
+
+@api.delete("/clients/{client_id}")
+async def crm_delete_client(client_id: str, user: User = Depends(get_current_user)):
+    ok = await clients_crm.delete_client(user.user_id, client_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Client inexistent")
+    return {"deleted": True}
+
+
+# ====================== COMPANIES DIRECTORY ======================
+@api.get("/companies/roles")
+async def companies_list_roles():
+    return companies_directory.COMPANY_ROLES
+
+
+@api.get("/companies/stats")
+async def companies_get_stats():
+    return await companies_directory.role_stats()
+
+
+@api.get("/companies")
+async def companies_list(industry: Optional[str] = None, role: Optional[str] = None, query: Optional[str] = None):
+    return await companies_directory.list_companies(industry=industry, role=role, query=query)
+
+
+@api.post("/companies")
+async def companies_create(payload: companies_directory.CompanyIn, user: User = Depends(get_current_user)):
+    cid = new_id("co_")
+    auto_verify = bool(user.is_developer)
+    doc = await companies_directory.create_company(user.user_id, payload, cid, auto_verify=auto_verify)
+    return doc
+
+
+@api.get("/companies/{company_id}")
+async def companies_get(company_id: str):
+    doc = await companies_directory.get_company(company_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Companie inexistentă")
+    return doc
+
+
+@api.patch("/companies/{company_id}")
+async def companies_update(company_id: str, payload: dict, user: User = Depends(get_current_user)):
+    existing = await companies_directory.get_company(company_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Companie inexistentă")
+    if not user.is_developer and existing.get("submitted_by") != user.user_id:
+        raise HTTPException(status_code=403, detail="Doar developer-ul sau submitter-ul pot edita.")
+    return await companies_directory.update_company(company_id, payload)
+
+
+@api.delete("/companies/{company_id}")
+async def companies_delete(company_id: str, user: User = Depends(get_current_user)):
+    existing = await companies_directory.get_company(company_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Companie inexistentă")
+    if not user.is_developer and existing.get("submitted_by") != user.user_id:
+        raise HTTPException(status_code=403, detail="Doar developer-ul sau submitter-ul pot șterge.")
+    ok = await companies_directory.delete_company(company_id)
+    return {"deleted": ok}
 
 
 app.include_router(api)
