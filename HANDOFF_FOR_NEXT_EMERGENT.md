@@ -1,71 +1,33 @@
 # 🛟 HANDOFF — Energy Project Design Services
-**Snapshot generated:** 2026-06-06 11:24 UTC (original)
-**Last updated:** 2026-06-06 12:55 UTC (V5.0 rebuild on new Emergent account)
+**Snapshot generated:** 2026-06-07 21:16 UTC
 **Source repo:** https://github.com/dragosserban95/Energy-Project-Design (branch `main`)
-**Preview (current Emergent session):** https://energy-sectors-build.preview.emergentagent.com
-**Canonical (production target):** design-energy.emergent.host
-**Old production target:** https://energy-project-design-services.onrender.com
+**Preview (current Emergent session):** https://template-stamp-hub.preview.emergentagent.com
+**Production target:** https://energy-project-design-services.onrender.com
 
 ---
 
-## 🚀 Pentru CONT EMERGENT NOU — prompt unic (UPDATED 2026-06-06 v5.0)
+## 📌 Pentru noul utilizator Emergent — cum continui de aici
 
-> **Lipește EXACT acest text într-un task Emergent nou și apasă Enter. Atât.**
+Pasul 1. Creează un task nou în Emergent (cont gratuit OK).
+Pasul 2. În prompt, lipește acest mesaj:
 
-```
-Import comenzi, fisiere, conversatii emergent stocate in repository
-dragosserban95/Energy-Project-Design + track page progres building +
-continue from last step taken to the end of the script/website final vision.
+> Importă codul din `https://github.com/dragosserban95/Energy-Project-Design` (branch `main`). Apoi citește `/app/memory/PRD.md` și `HANDOFF_FOR_NEXT_EMERGENT.md` din rădăcina repo-ului ca să înțelegi unde am rămas. Limba aplicației: română. Contul developer: `dragosserban95@gmail.com` / parola `Test12345` (auto-detectat ca developer). Continuă de la secțiunea "Next actions" din handoff.
 
-Citește în această ordine:
-1. /app/VISION_MANIFEST.md (viziune locked — APPEND-ONLY)
-2. /app/memory/PRD.md (cerințe produs)
-3. /app/memory/COMMAND_LOG.md (istoricul comenzilor)
-4. /app/memory/STEP_TRACKER.json (unde am rămas)
-5. /app/memory/LIST_1_TODO.md (TO-DO curent — execută în ordine)
-6. /app/memory/LIST_2_SUGGESTED.md (îmbunătățiri sugerate)
-7. /app/HANDOFF_FOR_NEXT_EMERGENT.md (acest fișier)
-
-Apoi:
-- Continuă de la primul pas „pending" din STEP_TRACKER.json.
-- După FIECARE pas major: append în COMMAND_LOG.md + update STEP_TRACKER.json + arată listele 1 și 2 pentru aprobare.
-- Commit în repo (via /api/dev/github/push) după fiecare fază majoră.
-- Limba: română. Cont developer: dragosserban95@gmail.com / Test12345 (auto-detectat).
-- Lucrează STRICT pe listele 1 și 2. Listele 3 (Out-of-the-box) și 4 (Big Update web research) doar la cerere explicită.
-```
-
-### Pași tehnici (după ce AI-ul a importat repo-ul):
-
-1. Configurează `backend/.env` (deja are valori default + Emergent LLM key — vezi `/app/memory/test_credentials.md`).
-2. `pip install -r backend/requirements.txt` + `yarn install --cwd frontend`.
-3. `sudo supervisorctl restart backend frontend`.
-4. Verify: `curl $BACKEND/api/` → `{status:'ok'}` și `curl $BACKEND/api/industries` → 13 industries.
-
----
-
-## 📊 STATUS LA HANDOFF v5.0 (2026-06-06 12:55 UTC)
-
-| Componentă | Status |
-|------------|--------|
-| Backend FastAPI | ✅ RUNNING (versiune 4.9, port 8001, 13 industrii catalogate) |
-| Frontend React | ✅ RUNNING (port 3000, 32+ pagini, compilat curat) |
-| MongoDB | ✅ RUNNING (port 27017, db: `test_database` sau `energy_project_design`) |
-| Auth flow | ✅ httpOnly cookies SameSite=None + JWT Bearer fallback |
-| 13 industrii UI | ✅ /industrii hub + /industrii/:id skeleton |
-| 10 feat-uri viziune | ✅ /feat-uri hub + /feat-uri/:id skeleton (status: planned/partial/skeleton) |
-| Developer page | ✅ /developer/progres (7 faze build + 4 list tabs) |
-| Sistem tracking | ✅ COMMAND_LOG.md, STEP_TRACKER.json, RESUME_PROMPT.md |
-| Cele 4 liste | ✅ LIST_1..4 în /app/memory/ |
-| Testing | ✅ Backend 100% (14/14), Frontend 85% (flaky timing pe /industrii, confirmat funcțional via screenshot) |
-| GitHub auto-push | ⚠️ Necesită GITHUB_TOKEN în .env (sau push manual din UI /api/dev/github/push) |
-| Stripe live | ⏳ Necesită `sk_live_...` (currently `sk_test_emergent`) |
-| QES real providers | ⏳ Scaffold only (certSIGN/DigiSign/Trans Sped subclasses to be implemented) |
+Pasul 3. Configurează secretele în `backend/.env` (lista mai jos). Sunt deja documentate în `backend/.env.example`.
+Pasul 4. Repornește serviciile: `sudo supervisorctl restart backend frontend`.
 
 ---
 
 ## 🧠 Project vision (PRD.md — full copy)
 
-# Energy Project Design Services — PRD
+# Energy Project Design Services — Product Vision V5
+
+> **Compania reală**: ENERGY PROJECT DESIGN SRL · CUI 43151074 · J40/12982/2020 · București
+> **Limba**: Română
+> **Stack**: FastAPI + React 19 + MongoDB (motor) + Tailwind + Shadcn/UI
+
+## Original problem statement
+B2B SaaS pentru proiectanți/executanți de documentații tehnice multi-industrie (gaze, electrică, apă, construcții, telecom, fotovoltaice, feroviar etc.) cu generare DOCX/PDF, semnătură QES, email per-user, plăți Stripe + SEPA, audit GDPR, AI Assistant și AI Developer. Versiunea actuală **V5** — extinsă cu Forum, Clients CRM, Companies directory, Project Lifecycle, Smart Audit Score, Company Profile, Audit Logs. — PRD
 
 ## Original Problem Statement
 B2B SaaS for Romanian engineering documentation, starting with **gas naturale** (branșamente, extinderi, instalații utilizare). Architecture supports multi-industry extension (electrical, water/sewage, civil, telecom).
@@ -85,22 +47,15 @@ B2B SaaS for Romanian engineering documentation, starting with **gas naturale** 
 - Per-user **active project** drives all operational pages
 - System-seeded DOCX templates available for all users (clone to library)
 
-## Industries (13 catalogued — toate active după v5.0 rebuild)
-1. ✅ **Gas naturale** — 5 subdomenii active
-2. ✅ **Electrică** — 5 subdomenii active
-3. ✅ **Telecomunicații** — 3 subdomenii active
-4. ✅ **Feroviar** — 4 subdomenii active
-5. ✅ **Construcții civile (DTAC)** — 3 subdomenii active
-6. ✅ **Fotovoltaice** — 4 subdomenii active
-7. ✅ **Apă & canalizare** — 5 subdomenii active
-8. ✅ **Salubritate** — 4 subdomenii active
-9. ✅ **HVAC** — 5 subdomenii active
-10. ✅ **Mediu & avize** — 4 subdomenii active
-11. ✅ **Drumuri & poduri** — 5 subdomenii active
-12. ✅ **Iluminat public** — 4 subdomenii active
-13. ✅ **Construcții imobile (extensie)** — 3 subdomenii active
-
-**TOTAL: 56/56 subdomenii active. Planificate adițional: ~102 (158 grand total — vezi `/app/docs/INDUSTRIES_ROADMAP.md`)**
+## Industries (8 catalogued)
+1. ✅ **Gas naturale** (active) — 5 subdomenii active: Branșamente, Instalații utilizare, Extinderi conductă, Studii fezabilitate, Înlocuiri/modernizări
+2. ⏳ Electrică (coming_soon)
+3. ⏳ Apă & canalizare (coming_soon)
+4. ⏳ Construcții civile (coming_soon)
+5. ⏳ Telecom (coming_soon)
+6. ⏳ Fotovoltaice (coming_soon)
+7. ⏳ Construcții (coming_soon)
+8. ⏳ Infrastructură feroviară (coming_soon)
 
 ## Imported from upstream repo (dragosserban95/Energy-Project-Design)
 - VGD/RTE detail fields: atestat_vgd, data_verificare_vgd, status_vgd, observatii_vgd, autorizatie_rte, data_verificare_rte, status_rte, observatii_rte
@@ -141,6 +96,17 @@ B2B SaaS for Romanian engineering documentation, starting with **gas naturale** 
 - P2: Activate electrical / water-sewage / civil / telecom industries
 - P2: Public verification page `/verify/{doc_id}`
 - P3: Encrypt action_logs and gmail_app_password at rest
+
+## V5 — Extensia community + CRM (2026-02-06)
+- ✅ **5 industrii noi** activate (Salubritate, HVAC, Mediu, Drumuri & poduri, Iluminat public) — total **13 industrii / 56 subdomenii**
+- ✅ **Forum markdown rendering** via marked.js + DOMPurify sanitization (XSS-safe), 14 industrii ca filtre
+- ✅ **Audit Trail `/logs`** cu filtre acțiune/dată/limită + export JSON; developer vede loguri pentru toți, user normal doar pentru contul propriu
+- ✅ **Document Versioning** — endpoint `/documents/groups` cu grupare pe base-name + UI viewer cu accordion
+- ✅ **Fix critic auth regression**: `Documents.jsx` folosea `localStorage.getItem('auth_token')` (regresie din V4.8) — migrat la `credentials: 'include'` cookie httpOnly
+- ✅ **Company Profile logo+stamp upload** (base64 data URI, max 500KB)
+- ✅ **Clients CRM `/clienti`** — per-user list (CRUD), filtru status + industrie + search, 14 industrii
+- ✅ **Companies directory `/companii`** — directorul firmelor partenere, 14 roluri (proiectant, executant, VGD, RTE, OSD, OSE, arhitect, juridic, contabil, licitații, dezvoltator, primărie, asociație, furnizor), submit + verificare developer
+- ✅ Toate comit-uite pe `main` ramificat, HANDOFF auto-refresh
 
 ## V4.9 — Forum + Lifecycle + Company + Payment Accounts (2026-02-06)
 - ✅ **Payment Accounts** module (Revolut IBAN pre-seed TEST) + admin CRUD /admin/payment-accounts + public /payment-accounts/active pentru SEPA bank transfer
@@ -309,18 +275,18 @@ curl -H "Authorization: Bearer $TOKEN" $BACKEND_URL/api/auth/me
 
 | SHA | Data | Mesaj |
 |-----|------|-------|
-| `f93bfb6` | 2026-06-06T11:24:28Z | docs(v4.9): PRD + industries roadmap (158 subdomenii planificate) |
-| `52d9df9` | 2026-06-06T11:24:27Z | docs(v4.9): PRD + industries roadmap (158 subdomenii planificate) |
-| `af9aa66` | 2026-06-06T11:21:24Z | feat(company): company profile + auto-placeholders for DOCX/emails |
-| `9b4bc17` | 2026-06-06T11:21:24Z | feat(company): company profile + auto-placeholders for DOCX/emails |
-| `a044dcf` | 2026-06-06T11:21:23Z | feat(company): company profile + auto-placeholders for DOCX/emails |
-| `1d7b3fc` | 2026-06-06T11:21:22Z | feat(company): company profile + auto-placeholders for DOCX/emails |
-| `3f89ef6` | 2026-06-06T11:21:21Z | feat(company): company profile + auto-placeholders for DOCX/emails |
-| `02c52d6` | 2026-06-06T11:18:38Z | feat(lifecycle): 12 statuses + weighted audit score + next best action |
-| `d90e09d` | 2026-06-06T11:18:38Z | feat(lifecycle): 12 statuses + weighted audit score + next best action |
-| `f5d1d00` | 2026-06-06T11:18:37Z | feat(lifecycle): 12 statuses + weighted audit score + next best action |
-| `15fcf33` | 2026-06-06T11:18:36Z | feat(lifecycle): 12 statuses + weighted audit score + next best action |
-| `7bb80c9` | 2026-06-06T11:14:45Z | feat(forum): community forum with industry filters, threads, replies, likes |
+| `c2d105e` | 2026-06-07T21:16:40Z | feat(v5.0): Clients CRM + Companies directory with 14 roles |
+| `f4729c8` | 2026-06-07T21:16:39Z | feat(v5.0): Clients CRM + Companies directory with 14 roles |
+| `ba602a6` | 2026-06-07T21:16:38Z | feat(v5.0): Clients CRM + Companies directory with 14 roles |
+| `8e7d58b` | 2026-06-07T21:16:37Z | feat(v5.0): Clients CRM + Companies directory with 14 roles |
+| `7fe1cd6` | 2026-06-07T21:16:36Z | feat(v5.0): Clients CRM + Companies directory with 14 roles |
+| `df230ee` | 2026-06-07T21:16:36Z | feat(v5.0): Clients CRM + Companies directory with 14 roles |
+| `46e6cee` | 2026-06-07T21:16:35Z | feat(v5.0): Clients CRM + Companies directory with 14 roles |
+| `6e4aba6` | 2026-06-07T21:16:34Z | feat(v5.0): Clients CRM + Companies directory with 14 roles |
+| `343cf90` | 2026-06-06T13:15:57Z | V5.2: official version bump + deployment-ready + end-to-end run validated |
+| `e9981cf` | 2026-06-06T13:00:47Z | V5.0: emergent account rebuild + tracking system + 12 industries skeleton + 4 planning lists |
+| `53b748e` | 2026-06-06T11:45:44Z | feat: audit logs + doc versioning + company logo upload + fix auth regression |
+| `c8e942a` | 2026-06-06T11:45:43Z | feat: audit logs + doc versioning + company logo upload + fix auth regression |
 
 Vezi toate commit-urile: https://github.com/dragosserban95/Energy-Project-Design/commits/main
 
