@@ -1,4 +1,11 @@
-# Energy Project Design Services — PRD
+# Energy Project Design Services — Product Vision V5
+
+> **Compania reală**: ENERGY PROJECT DESIGN SRL · CUI 43151074 · J40/12982/2020 · București
+> **Limba**: Română
+> **Stack**: FastAPI + React 19 + MongoDB (motor) + Tailwind + Shadcn/UI
+
+## Original problem statement
+B2B SaaS pentru proiectanți/executanți de documentații tehnice multi-industrie (gaze, electrică, apă, construcții, telecom, fotovoltaice, feroviar etc.) cu generare DOCX/PDF, semnătură QES, email per-user, plăți Stripe + SEPA, audit GDPR, AI Assistant și AI Developer. Versiunea actuală **V5** — extinsă cu Forum, Clients CRM, Companies directory, Project Lifecycle, Smart Audit Score, Company Profile, Audit Logs. — PRD
 
 ## Original Problem Statement
 B2B SaaS for Romanian engineering documentation, starting with **gas naturale** (branșamente, extinderi, instalații utilizare). Architecture supports multi-industry extension (electrical, water/sewage, civil, telecom).
@@ -67,6 +74,17 @@ B2B SaaS for Romanian engineering documentation, starting with **gas naturale** 
 - P2: Activate electrical / water-sewage / civil / telecom industries
 - P2: Public verification page `/verify/{doc_id}`
 - P3: Encrypt action_logs and gmail_app_password at rest
+
+## V5 — Extensia community + CRM (2026-02-06)
+- ✅ **5 industrii noi** activate (Salubritate, HVAC, Mediu, Drumuri & poduri, Iluminat public) — total **13 industrii / 56 subdomenii**
+- ✅ **Forum markdown rendering** via marked.js + DOMPurify sanitization (XSS-safe), 14 industrii ca filtre
+- ✅ **Audit Trail `/logs`** cu filtre acțiune/dată/limită + export JSON; developer vede loguri pentru toți, user normal doar pentru contul propriu
+- ✅ **Document Versioning** — endpoint `/documents/groups` cu grupare pe base-name + UI viewer cu accordion
+- ✅ **Fix critic auth regression**: `Documents.jsx` folosea `localStorage.getItem('auth_token')` (regresie din V4.8) — migrat la `credentials: 'include'` cookie httpOnly
+- ✅ **Company Profile logo+stamp upload** (base64 data URI, max 500KB)
+- ✅ **Clients CRM `/clienti`** — per-user list (CRUD), filtru status + industrie + search, 14 industrii
+- ✅ **Companies directory `/companii`** — directorul firmelor partenere, 14 roluri (proiectant, executant, VGD, RTE, OSD, OSE, arhitect, juridic, contabil, licitații, dezvoltator, primărie, asociație, furnizor), submit + verificare developer
+- ✅ Toate comit-uite pe `main` ramificat, HANDOFF auto-refresh
 
 ## V4.9 — Forum + Lifecycle + Company + Payment Accounts (2026-02-06)
 - ✅ **Payment Accounts** module (Revolut IBAN pre-seed TEST) + admin CRUD /admin/payment-accounts + public /payment-accounts/active pentru SEPA bank transfer
