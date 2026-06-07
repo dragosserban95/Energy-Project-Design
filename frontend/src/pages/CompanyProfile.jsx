@@ -66,6 +66,20 @@ export default function CompanyProfile() {
     } finally { setBusy(false); }
   }
 
+  function handleFileUpload(field) {
+    return (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      if (file.size > 500 * 1024) { toast.error('Fișier prea mare (max 500KB).'); return; }
+      const reader = new FileReader();
+      reader.onload = () => {
+        update(field, reader.result);
+        toast.success('Imagine încărcată — apasă Salvează pentru a păstra.');
+      };
+      reader.readAsDataURL(file);
+    };
+  }
+
   const sectionEntries = Object.entries(SECTIONS).map(([sid, smeta]) => [sid, smeta, FIELDS.filter(f => f.section === sid)]);
 
   return (
@@ -110,6 +124,33 @@ export default function CompanyProfile() {
                   </div>
                 </div>
               ))}
+
+              {/* Logo & stamp upload */}
+              <div className="bg-white border-2 border-black p-5" data-testid="section-media">
+                <div className="text-xs uppercase tracking-wider text-gray-600 mb-3 flex items-center gap-2"><span className="text-base">🖼️</span> Imagine logo & ștampilă firmă</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="text-[10px] uppercase text-gray-500">Logo firmă (max 500KB, PNG/JPG)</label>
+                    <input type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={handleFileUpload('logo_url')} className="w-full mt-1 text-xs" data-testid="upload-logo" />
+                    {data.logo_url && (
+                      <div className="mt-2 border border-gray-200 p-2 bg-gray-50">
+                        <img src={data.logo_url} alt="Logo" className="max-h-24 mx-auto" data-testid="logo-preview" />
+                        <button onClick={() => update('logo_url', '')} className="text-[10px] text-red-700 hover:underline mt-1 block mx-auto">Șterge logo</button>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase text-gray-500">Ștampilă firmă (max 500KB)</label>
+                    <input type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={handleFileUpload('stamp_signature_url')} className="w-full mt-1 text-xs" data-testid="upload-stamp" />
+                    {data.stamp_signature_url && (
+                      <div className="mt-2 border border-gray-200 p-2 bg-gray-50">
+                        <img src={data.stamp_signature_url} alt="Stamp" className="max-h-24 mx-auto" data-testid="stamp-preview" />
+                        <button onClick={() => update('stamp_signature_url', '')} className="text-[10px] text-red-700 hover:underline mt-1 block mx-auto">Șterge ștampilă</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             <aside className="space-y-4 self-start">

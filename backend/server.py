@@ -49,6 +49,8 @@ import payment_accounts as pay_accounts
 import forum as forum_module
 import project_lifecycle as lifecycle
 import company_profile as company_module
+import clients_crm
+import companies_directory
 import hashlib
 
 from emergentintegrations.payments.stripe.checkout import (
@@ -1345,7 +1347,7 @@ async def get_vision(user: User = Depends(get_current_user)):
 # ====================== ROOT ======================
 @api.get("/")
 async def root():
-    return {"app": "Energy Project Design Services", "version": "4.9", "status": "ok"}
+    return {"app": "Energy Project Design Services", "version": "5.0", "status": "ok"}
 
 
 # ====================== PAYMENT ACCOUNTS (admin / public) ======================
@@ -1533,7 +1535,77 @@ async def lifecycle_set_status(payload: dict, user: User = Depends(get_current_u
     return {"status": new_status, "meta": lifecycle.status_meta(new_status)}
 
 
-# ====================== COMPANY PROFILE ======================
+# ====================== AUDIT LOGS ======================
+@api.get("/logs")
+async def list_audit_logs(
+    action: Optional[str] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    limit: int = 100,
+    user: User = Depends(get_current_user),
+):
+    """User sees their own logs. Developer sees ALL logs."""
+    q = {} if user.is_developer else {"user_id": user.user_id}
+    if action:
+        q["action"] = {"$regex": action, "$options": "i"}
+    if from_date:
+        q.setdefault("created_at", {})["$gte"] = from_date
+    if to_date:
+        q.setdefault("created_at", {})["$lte"] = to_date
+    docs = await db.action_logs.find(q, {"_id": 0}).sort("created_at", -1).limit(min(limit, 500)).to_list(500)
+    return docs
+
+
+@api.get("/logs/actions")
+async def list_log_actions(user: User = Depends(get_current_user)):
+    """Return distinct action names — for the filter dropdown."""
+    q = {} if user.is_developer else {"user_id": user.user_id}
+    actions = await db.action_logs.distinct("action", q)
+    return sorted([a for a in actions if a])
+
+
+# ====================== DOCUMENT VERSIONING ======================
+@api.get("/documents/groups")
+async def list_document_groups(user: User = Depends(get_current_user)):
+    """Group documents by base name — returns groups with version count + latest version."""
+    docs = await db.documents.find(
+        {"user_id": user.user_id},
+        {"_id": 0, "data_b64": 0, "signature_b64": 0},
+    ).sort("created_at", -1).to_list(2000)
+    groups: Dict[str, Dict[str, Any]] = {}
+    for d in docs:
+        base = (d.get("name") or "Untitled").rsplit("_v", 1)[0]
+        if base not in groups:
+            groups[base] = {
+                "base_name": base,
+                "latest_id": d["document_id"],
+                "latest_name": d["name"],
+                "latest_created_at": d["created_at"],
+                "versions_count": 1,
+                "versions": [{"document_id": d["document_id"], "name": d["name"], "created_at": d["created_at"], "signed": d.get("signed"), "stamped": d.get("stamped")}],
+            }
+        else:
+            groups[base]["versions_count"] += 1
+            groups[base]["versions"].append({"document_id": d["document_id"], "name": d["name"], "created_at": d["created_at"], "signed": d.get("signed"), "stamped": d.get("stamped")})
+    return list(groups.values())
+
+
+@api.get("/documents/{document_id}/versions")
+async def get_document_versions(document_id: str, user: User = Depends(get_current_user)):
+    """List versions of the same base-name as the given document."""
+    doc = await db.documents.find_one({"document_id": document_id, "user_id": user.user_id}, {"_id": 0, "data_b64": 0, "signature_b64": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document negăsit")
+    base = (doc.get("name") or "").rsplit("_v", 1)[0]
+    if not base:
+        return [doc]
+    cursor = db.documents.find(
+        {"user_id": user.user_id, "name": {"$regex": f"^{base}"}},
+        {"_id": 0, "data_b64": 0, "signature_b64": 0},
+    ).sort("created_at", 1)
+    return await cursor.to_list(100)
+
+
 @api.get("/company-profile")
 async def get_company_profile(user: User = Depends(get_current_user)):
     return await company_module.get_profile(user.user_id)
@@ -1555,6 +1627,96 @@ async def get_company_placeholders(user: User = Depends(get_current_user)):
     """Returns the placeholder map derived from the company profile."""
     profile = await company_module.get_profile(user.user_id)
     return company_module.placeholders_from_profile(profile)
+
+
+# ====================== CLIENTS CRM ======================
+@api.get("/clients")
+async def crm_list_clients(status: Optional[str] = None, industry: Optional[str] = None, user: User = Depends(get_current_user)):
+    return await clients_crm.list_clients(user.user_id, status=status, industry=industry)
+
+
+@api.post("/clients")
+async def crm_create_client(payload: clients_crm.ClientIn, user: User = Depends(get_current_user)):
+    cid = new_id("cli_")
+    doc = await clients_crm.create_client(user.user_id, payload, cid)
+    return doc
+
+
+@api.get("/clients/{client_id}")
+async def crm_get_client(client_id: str, user: User = Depends(get_current_user)):
+    doc = await clients_crm.get_client(user.user_id, client_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Client inexistent")
+    return doc
+
+
+@api.patch("/clients/{client_id}")
+async def crm_update_client(client_id: str, payload: dict, user: User = Depends(get_current_user)):
+    doc = await clients_crm.update_client(user.user_id, client_id, payload)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Client inexistent")
+    return doc
+
+
+@api.delete("/clients/{client_id}")
+async def crm_delete_client(client_id: str, user: User = Depends(get_current_user)):
+    ok = await clients_crm.delete_client(user.user_id, client_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Client inexistent")
+    return {"deleted": True}
+
+
+# ====================== COMPANIES DIRECTORY ======================
+@api.get("/companies/roles")
+async def companies_list_roles():
+    return companies_directory.COMPANY_ROLES
+
+
+@api.get("/companies/stats")
+async def companies_get_stats():
+    return await companies_directory.role_stats()
+
+
+@api.get("/companies")
+async def companies_list(industry: Optional[str] = None, role: Optional[str] = None, query: Optional[str] = None):
+    return await companies_directory.list_companies(industry=industry, role=role, query=query)
+
+
+@api.post("/companies")
+async def companies_create(payload: companies_directory.CompanyIn, user: User = Depends(get_current_user)):
+    cid = new_id("co_")
+    auto_verify = bool(user.is_developer)
+    doc = await companies_directory.create_company(user.user_id, payload, cid, auto_verify=auto_verify)
+    return doc
+
+
+@api.get("/companies/{company_id}")
+async def companies_get(company_id: str):
+    doc = await companies_directory.get_company(company_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Companie inexistentă")
+    return doc
+
+
+@api.patch("/companies/{company_id}")
+async def companies_update(company_id: str, payload: dict, user: User = Depends(get_current_user)):
+    existing = await companies_directory.get_company(company_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Companie inexistentă")
+    if not user.is_developer and existing.get("submitted_by") != user.user_id:
+        raise HTTPException(status_code=403, detail="Doar developer-ul sau submitter-ul pot edita.")
+    return await companies_directory.update_company(company_id, payload)
+
+
+@api.delete("/companies/{company_id}")
+async def companies_delete(company_id: str, user: User = Depends(get_current_user)):
+    existing = await companies_directory.get_company(company_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Companie inexistentă")
+    if not user.is_developer and existing.get("submitted_by") != user.user_id:
+        raise HTTPException(status_code=403, detail="Doar developer-ul sau submitter-ul pot șterge.")
+    ok = await companies_directory.delete_company(company_id)
+    return {"deleted": ok}
 
 
 app.include_router(api)

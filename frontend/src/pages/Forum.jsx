@@ -1,10 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import AppShell from '../components/AppShell';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { MessageSquare, Plus, Heart, Eye, Reply, ArrowLeft, Trash2, Pin, Filter, TrendingUp, Clock, Send, X } from 'lucide-react';
+
+marked.setOptions({ breaks: true, gfm: true });
+
+function renderMarkdown(text) {
+  if (!text) return { __html: '' };
+  const html = DOMPurify.sanitize(marked.parse(text), {
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'blockquote', 'code', 'pre', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
+    ALLOWED_ATTR: ['href', 'title', 'class'],
+  });
+  return { __html: html };
+}
 
 const INDUSTRIES = [
   { id: 'all', label: 'Toate', icon: '◉' },
@@ -17,6 +30,11 @@ const INDUSTRIES = [
   { id: 'photovoltaic', label: 'Fotovoltaice', icon: '☀️' },
   { id: 'construction', label: 'Construcții imobile', icon: '🏢' },
   { id: 'railway_infra', label: 'Infrastructură feroviară', icon: '🚆' },
+  { id: 'sanitation', label: 'Salubritate & deșeuri', icon: '♻️' },
+  { id: 'hvac', label: 'HVAC & termice', icon: '🌡️' },
+  { id: 'environment', label: 'Mediu & avize', icon: '🌱' },
+  { id: 'roads_bridges', label: 'Drumuri & poduri', icon: '🛣️' },
+  { id: 'public_lighting', label: 'Iluminat public', icon: '💡' },
 ];
 
 function timeAgo(iso) {
@@ -239,8 +257,11 @@ function ComposeModal({ onClose, onCreated, defaultIndustry }) {
             <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full mt-1 px-3 py-2 border border-black text-sm font-semibold" maxLength={200} data-testid="compose-title" />
           </div>
           <div>
-            <label className="text-xs uppercase text-gray-600">Conținut</label>
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} className="w-full mt-1 px-3 py-2 border border-black text-sm" maxLength={8000} data-testid="compose-body" />
+            <label className="text-xs uppercase text-gray-600 flex items-center justify-between">
+              <span>Conținut</span>
+              <span className="text-[10px] text-gray-400">Markdown acceptat: **bold**, *italic*, `cod`, &gt;citat, liste</span>
+            </label>
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} className="w-full mt-1 px-3 py-2 border border-black text-sm font-mono" maxLength={8000} data-testid="compose-body" />
             <div className="text-[10px] text-gray-500 mt-1">{body.length}/8000 caractere</div>
           </div>
           <div>
@@ -337,7 +358,7 @@ function ForumThreadView({ threadId }) {
             <span>{timeAgo(thread.created_at)}</span>
           </div>
           <h1 className="text-3xl font-bold mb-4" data-testid="thread-title">{thread.title}</h1>
-          <div className="prose prose-sm max-w-none whitespace-pre-wrap text-sm leading-relaxed" data-testid="thread-body">{thread.body}</div>
+          <div className="prose prose-sm max-w-none text-sm leading-relaxed forum-md" data-testid="thread-body" dangerouslySetInnerHTML={renderMarkdown(thread.body)} />
 
           {thread.tags?.length > 0 && (
             <div className="flex gap-1.5 mt-4 flex-wrap">
@@ -371,7 +392,7 @@ function ForumThreadView({ threadId }) {
                 <span>•</span>
                 <span>{timeAgo(r.created_at)}</span>
               </div>
-              <div className="whitespace-pre-wrap text-sm leading-relaxed">{r.body}</div>
+              <div className="whitespace-pre-wrap text-sm leading-relaxed forum-md" dangerouslySetInnerHTML={renderMarkdown(r.body)} />
             </div>
           ))}
         </div>

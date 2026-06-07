@@ -5,7 +5,7 @@ import LicenseTimer from './LicenseTimer';
 import {
   LayoutDashboard, ClipboardList, Settings2, Calculator, FileText, FileCheck2,
   Stamp, ShieldCheck, Mail, BadgeCheck, GaugeCircle, CreditCard, Settings, LogOut,
-  Sparkles, Wrench, ListChecks, Flame, ChevronRight, FolderKanban, Github, Banknote, MessageSquare, Building2,
+  Sparkles, Wrench, ListChecks, Flame, ChevronRight, FolderKanban, Github, Banknote, MessageSquare, Building2, Users,
 } from 'lucide-react';
 
 const SECTIONS = [
@@ -33,6 +33,8 @@ const SECTIONS = [
     title: 'Comunicare & Control',
     items: [
       { to: '/email', label: 'Email-uri', icon: Mail, tid: 'nav-email' },
+      { to: '/clienti', label: 'Clienți', icon: Users, tid: 'nav-clients' },
+      { to: '/companii', label: 'Companii & parteneri', icon: Building2, tid: 'nav-companies' },
       { to: '/forum', label: 'Forum comunitate', icon: MessageSquare, tid: 'nav-forum' },
       { to: '/verifica', label: 'Verifică documentație', icon: GaugeCircle, tid: 'nav-verifica' },
       { to: '/ai', label: 'AI Assistant', icon: Sparkles, tid: 'nav-ai' },
@@ -44,6 +46,7 @@ const SECTIONS = [
     items: [
       { to: '/company', label: 'Profil societate', icon: Building2, tid: 'nav-company' },
       { to: '/pricing', label: 'Planuri & achiziții', icon: CreditCard, tid: 'nav-pricing' },
+      { to: '/logs', label: 'Registru audit', icon: ListChecks, tid: 'nav-logs' },
       { to: '/settings', label: 'Setări', icon: Settings, tid: 'nav-settings' },
     ],
   },
