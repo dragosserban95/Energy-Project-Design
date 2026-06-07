@@ -5,8 +5,7 @@ import LicenseTimer from './LicenseTimer';
 import {
   LayoutDashboard, ClipboardList, Settings2, Calculator, FileText, FileCheck2,
   Stamp, ShieldCheck, Mail, BadgeCheck, GaugeCircle, CreditCard, Settings, LogOut,
-  Sparkles, Wrench, ListChecks, Flame, ChevronRight, FolderKanban, Github, Banknote, MessageSquare, Building2,
-  Layers, Compass, BarChart3,
+  Sparkles, Wrench, ListChecks, Flame, ChevronRight, FolderKanban, Github, Banknote, MessageSquare, Building2, Users,
 } from 'lucide-react';
 
 const SECTIONS = [
@@ -15,8 +14,6 @@ const SECTIONS = [
     items: [
       { to: '/dashboard', label: 'Panou principal', icon: LayoutDashboard, tid: 'nav-dashboard' },
       { to: '/proiecte', label: 'Proiecte', icon: FolderKanban, tid: 'nav-proiecte' },
-      { to: '/industrii', label: 'Industrii (12)', icon: Compass, tid: 'nav-industrii' },
-      { to: '/feat-uri', label: 'Feat-uri viziune', icon: Layers, tid: 'nav-feat-uri' },
       { to: '/proiect', label: 'Date proiect activ', icon: ClipboardList, tid: 'nav-proiect' },
       { to: '/tehnice', label: 'Date tehnice', icon: Settings2, tid: 'nav-tehnice' },
       { to: '/calcul', label: 'Calcul inteligent', icon: Calculator, tid: 'nav-calcul' },
@@ -36,6 +33,8 @@ const SECTIONS = [
     title: 'Comunicare & Control',
     items: [
       { to: '/email', label: 'Email-uri', icon: Mail, tid: 'nav-email' },
+      { to: '/clienti', label: 'Clienți', icon: Users, tid: 'nav-clients' },
+      { to: '/companii', label: 'Companii & parteneri', icon: Building2, tid: 'nav-companies' },
       { to: '/forum', label: 'Forum comunitate', icon: MessageSquare, tid: 'nav-forum' },
       { to: '/verifica', label: 'Verifică documentație', icon: GaugeCircle, tid: 'nav-verifica' },
       { to: '/ai', label: 'AI Assistant', icon: Sparkles, tid: 'nav-ai' },
@@ -68,7 +67,7 @@ export default function AppShell({ children, title, subtitle }) {
             </div>
             <div>
               <div className="font-bold tracking-tight text-[15px] leading-tight">Energy Project<span className="text-[#FFB300]"> Design</span></div>
-              <div className="text-[9px] uppercase tracking-[0.22em] text-gray-500 mt-0.5">v5.2 · Services</div>
+              <div className="text-[9px] uppercase tracking-[0.22em] text-gray-500 mt-0.5">v4.5 · Services</div>
             </div>
           </Link>
         </div>
